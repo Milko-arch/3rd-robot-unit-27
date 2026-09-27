@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinguoKids: The Word Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Bubblegum+Sans&family=Fredoka+One&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --p-color: #6366f1;
+            --s-color: #f43f5e;
+            --bg-color: #f5f3ff;
+            --choco-dark: #3e2723;
+            --choco-mid: #5d4037;
+            --choco-light: #8d6e63;
+            --choco-gold: #d4a373;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            overflow-x: hidden;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="%23f59e0b" stroke="white" stroke-width="1.5" d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.4-6.3-4.8-6.3 4.8 2.3-7.4-6-4.6h7.6z"/></svg>') 16 16, auto;
+        }
+        
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(rgba(99, 102, 241, 0.05) 2px, transparent 2px);
+            background-size: 30px 30px;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        button, .cursor-pointer {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="%23ec4899" stroke="white" stroke-width="1.5" d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.4-6.3-4.8-6.3 4.8 2.3-7.4-6-4.6h7.6z"/></svg>') 16 16, pointer !important;
+        }
+
+        .font-game { font-family: 'Bubblegum Sans', cursive; }
+        .font-bold-game { font-family: 'Fredoka One', cursive; }
+
+        .btn-bounce {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 0px rgba(0,0,0,0.1);
+        }
+        .btn-bounce:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0px rgba(0,0,0,0.1);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 4px solid white;
+            border-radius: 40px;
+        }
+
+        .cursor-pointer.glass {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .cursor-pointer.glass:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15), inset 0 0 15px rgba(255,255,255,0.8);
+        }
+        
+        .auto-play-highlight {
+            transform: scale(1.15) !important;
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6), inset 0 0 20px rgba(255,255,255,1) !important;
+            border-color: #6366f1 !important;
+            z-index: 20;
+        }
+
+        .wrong-highlight {
+            background-color: #fef08a !important; 
+            border-color: #eab308 !important;
+            animation: pulse-yellow 2s infinite;
+        }
+
+        @keyframes pulse-yellow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+            50% { box-shadow: 0 0 20px 10px rgba(234, 179, 8, 0.2); }
+        }
+
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        .sparkle {
+            position: absolute;
+            pointer-events: none;
+            background: white;
+            border-radius: 50%;
+            animation: sparkleAnim 0.8s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes sparkleAnim {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.5) rotate(180deg); opacity: 0; }
+        }
+
+        .map-path {
+            stroke-dasharray: 10;
+            animation: dash 5s linear infinite;
+            filter: drop-shadow(0px 0px 8px rgba(99, 102, 241, 0.6));
+        }
+        @keyframes dash { to { stroke-dashoffset: -100; } }
+
+        .robot-talking img, .group img, .robot-container img {
+            animation: robotBlink 4s infinite;
+        }
+
+        @keyframes robotBlink {
+            0%, 45%, 55%, 100% { clip-path: inset(0 0 0 0); }
+            50% { clip-path: inset(25% 0 25% 0); } 
+        }
+
+        .is-talking img {
+            animation: mouthMove 0.25s infinite alternate ease-in-out, robotBlink 4s infinite;
+        }
+
+        @keyframes mouthMove {
+            from { transform: scaleY(1); }
+            to { transform: scaleY(0.9); } 
+        }
+
+        .robot-default-pos {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 60;
+        }
+
+        .robot-spelling-pos {
+            position: relative !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: none !important;
+            margin: 20px auto 0 auto;
+            z-index: 10;
+        }
+
+        .bg-bubbles {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: floatUp 15s infinite ease-in;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.8);
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+        }
+
+        .floating-feedback {
+            position: fixed;
+            font-family: 'Fredoka One', cursive;
+            font-size: 3.5rem;
+            color: #fde047;
+            text-shadow: 0px 4px 0px #d97706, 0px 0px 15px rgba(255,255,255,0.9);
+            z-index: 9999;
+            pointer-events: none;
+            animation: floatFeedback 1.5s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes floatFeedback {
+            0% { transform: translate(-50%, 0) scale(0.5) rotate(-10deg); opacity: 0; }
+            20% { transform: translate(-50%, -30px) scale(1.2) rotate(5deg); opacity: 1; }
+            80% { transform: translate(-50%, -60px) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -90px) scale(0.8); opacity: 0; }
+        }
+
+        .magic-trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #a78bfa;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            animation: trailFade 0.6s linear forwards;
+            box-shadow: 0 0 10px #818cf8;
+        }
+        @keyframes trailFade {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(0.1) translateY(20px); opacity: 0; }
+        }
+
+        .phrase-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .phrase-card:hover {
+            transform: scale(1.03);
+            border-color: #818cf8;
+        }
+        .highlight-word {
+            font-size: 1.4em;
+            font-weight: 900;
+            color: #4f46e5;
+            display: inline-block;
+            margin: 0 4px;
+            text-transform: uppercase;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
+        }
+
+        #onboarding {
+            background: radial-gradient(circle at center, #7e22ce 0%, #2e1065 100%);
+            box-shadow: inset 0 0 120px rgba(0,0,0,0.85);
+        }
+        .choco-title {
+            color: #f3e8ff;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 25px rgba(168, 85, 247, 0.8);
+        }
+        .choco-subtitle {
+            color: #e9d5ff;
+        }
+        .hero-label-blue { color: #67e8f9; }
+        .hero-label-pink { color: #f9a8d4; }
+
+        @keyframes ufoFlySuccess {
+            0% { transform: translate(50vw, 110vh) scale(0.5) rotate(0deg); opacity: 0; }
+            20% { transform: translate(50vw, 60vh) scale(1.5) rotate(-15deg); opacity: 1; }
+            40% { transform: translate(45vw, 55vh) scale(1.5) rotate(15deg); }
+            100% { transform: translate(120vw, -20vh) scale(0.3) rotate(45deg); opacity: 0; }
+        }
+        @keyframes ufoCrashErratic {
+            0% { transform: translate(-20vw, -20vh) scale(1) rotate(0deg); opacity: 1; }
+            15% { transform: translate(15vw, 10vh) scale(1.2) rotate(60deg); }
+            35% { transform: translate(25vw, 5vh) scale(1.1) rotate(-110deg); }
+            55% { transform: translate(40vw, 30vh) scale(1.3) rotate(220deg); }
+            75% { transform: translate(35vw, 25vh) scale(1.2) rotate(310deg); }
+            100% { transform: translate(50vw, 50vh) scale(1.6) rotate(480deg); opacity: 1; }
+        }
+        .animate-shake {
+            animation: screenShake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes screenShake {
+            10%, 90% { transform: translate3d(-4px, 0, 0); }
+            20%, 80% { transform: translate3d(6px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-10px, 0, 0); }
+            40%, 60% { transform: translate3d(10px, 0, 0); }
+        }
+
+        /* Contenedor Three.js Mekorama B-01 Responsivo y Ajustado a la Pantalla */
+        #mekorama-canvas-container {
+            width: 100%;
+            height: calc(85vh - 40px);
+            max-height: 850px;
+            min-height: 500px;
+            position: relative;
+            background: #bfe3f7;
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: inset 0 0 80px rgba(191, 227, 247, 0.6), 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 4px rgba(245, 158, 11, 0.4);
+            touch-action: none;
+            transition: all 0.25s ease-out;
+        }
+
+        /* Reglas dedicadas de pantalla completa para evitar que se reduzca */
+        #mekorama-canvas-container:fullscreen,
+        #mekorama-canvas-container:-webkit-full-screen,
+        #mekorama-canvas-container.is-fullscreen-canvas {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            min-height: 100vh !important;
+            border-radius: 0 !important;
+            z-index: 99999 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        @media (max-width: 768px) {
+            #mekorama-canvas-container {
+                height: 75vh;
+                min-height: 480px;
+                border-radius: 1.5rem;
+            }
+        }
+        #mekorama-canvas-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Ondas animadas de audio para el HUD de escucha */
+        .audio-wave-bar {
+            display: inline-block;
+            width: 3px;
+            height: 14px;
+            background-color: #38bdf8;
+            border-radius: 2px;
+            animation: soundWave 0.8s ease-in-out infinite alternate;
+        }
+        .audio-wave-bar:nth-child(2) { animation-delay: 0.15s; height: 18px; }
+        .audio-wave-bar:nth-child(3) { animation-delay: 0.3s; height: 10px; }
+        .audio-wave-bar:nth-child(4) { animation-delay: 0.45s; height: 16px; }
+        @keyframes soundWave {
+            0% { transform: scaleY(0.3); opacity: 0.5; }
+            100% { transform: scaleY(1.3); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- HUD (Panel de Control de Usuario) -->
+    <div class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-start pointer-events-none">
+        <div class="flex flex-col gap-2 pointer-events-auto">
+            <div class="glass px-6 py-2 flex items-center gap-3 shadow-xl">
+                <span class="text-3xl">💎</span>
+                <span id="stars-count" class="text-2xl font-bold-game text-indigo-600">0</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-end gap-2 pointer-events-auto">
+            <div class="flex items-center gap-2">
+                <span id="hud-username" class="glass px-5 py-3 font-bold-game text-indigo-600 shadow-xl hidden bg-white text-sm uppercase"></span>
+                <button onclick="showSection('map')" class="glass p-4 btn-bounce bg-white">
+                    <span class="text-2xl">🏠</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EL ROBOT (Leo/Mia Guía del Juego) -->
+    <div id="mission-toast" class="robot-default-pos animate__animated animate__fadeInUp flex flex-col items-center gap-2 pointer-events-none">
+        <p class="bg-white/90 px-4 py-2 rounded-2xl border-2 border-indigo-200 text-xs font-bold text-indigo-800 uppercase shadow-lg text-center max-w-[200px]" id="leo-talk">Hello! Let's play.</p>
+        <div id="leo-avatar-container" class="w-20 h-20 bg-white/90 rounded-full border-4 border-white flex items-center justify-center overflow-hidden shadow-2xl robot-container pointer-events-auto">
+            <img id="hud-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Leo&backgroundColor=3b82f6" class="w-full h-full transition-transform duration-200" alt="Avatar">
+        </div>
+    </div>
+
+    <!-- MODAL DE PRÓXIMA MISIÓN -->
+    <div id="next-mission-modal" class="fixed inset-0 z-[200] modal-overlay flex items-center justify-center p-6 hidden">
+        <div class="glass max-w-md w-full p-8 text-center animate__animated animate__bounceIn">
+            <div class="text-6xl mb-4">🌟</div>
+            <h3 class="text-3xl font-bold-game text-indigo-600 mb-2">EXCELLENT WORK!</h3>
+            <p class="text-slate-600 mb-8 font-medium">You have reviewed all the words.</p>
+            <div class="flex flex-col gap-4">
+                <button id="stay-here-btn" onclick="handleContinueHere()" class="w-full py-4 bg-slate-200 text-slate-700 rounded-2xl font-bold-game text-lg btn-bounce">STAY HERE</button>
+                <button onclick="goToSpellingFromModal()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold-game text-lg btn-bounce">GO TO MISSION 2 🕵️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE REGISTRO DE NOMBRE -->
+    <div id="name-modal" class="fixed inset-0 z-[200] modal-overlay flex items-center justify-center p-6 hidden">
+        <div class="glass max-w-md w-full p-8 text-center animate__animated animate__zoomIn">
+            <h3 class="text-3xl font-bold-game text-indigo-600 mb-4">WELCOME HERO!</h3>
+            <p class="text-slate-600 mb-6 font-medium">Type your name to start the quest:</p>
+            <input type="text" id="student-name" placeholder="Your name..." class="w-full p-4 rounded-2xl border-4 border-indigo-100 focus:border-indigo-400 outline-none text-xl text-center font-bold mb-6">
+            <button onclick="confirmNameAndStart()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold-game text-xl btn-bounce">START QUEST! 🚀</button>
+        </div>
+    </div>
+
+    <!-- Pantalla de Inicio -->
+    <div id="onboarding" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 text-white overflow-y-auto">
+        <div class="max-w-xl w-full text-center py-10 flex-grow flex flex-col justify-center">
+            <div class="mb-4 animate__animated animate__fadeInDown">
+                <h1 class="text-7xl font-bold-game tracking-wider choco-title uppercase">Footprints</h1>
+                <p class="text-3xl font-game choco-subtitle mt-2 uppercase tracking-widest">THIRD GRADE UNIT 27</p>
+                <p class="text-lg font-game opacity-50 mt-1 uppercase text-purple-200/70">Academy Adventure</p>
+            </div>
+            
+            <div class="w-24 h-1 bg-purple-400/50 mx-auto my-8 rounded-full"></div>
+
+            <h2 class="text-4xl font-game mb-8 animate__animated animate__fadeIn text-purple-100">CHOOSE YOUR HERO!</h2>
+            <div class="grid grid-cols-2 gap-6 mb-12">
+                <div onclick="selectPower('blue', 'Leo')" class="glass bg-white/10 border-white/20 p-6 cursor-pointer hover:scale-105 transition-all group shadow-2xl">
+                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Leo&backgroundColor=3b82f6" class="w-32 h-32 mx-auto group-hover:rotate-12 transition-transform rounded-full">
+                    <p class="mt-4 font-bold-game hero-label-blue uppercase">Blue Bolt</p>
+                </div>
+                <div onclick="selectPower('pink', 'Mia')" class="glass bg-white/10 border-white/20 p-6 cursor-pointer hover:scale-105 transition-all group shadow-2xl">
+                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Mia&backgroundColor=ec4899" class="w-32 h-32 mx-auto group-hover:-rotate-12 transition-transform rounded-full">
+                    <p class="mt-4 font-bold-game hero-label-pink uppercase">Pink Fire</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor del Juego -->
+    <main id="game-container" class="flex-grow pt-24 pb-32 px-4 transition-all duration-500 opacity-0 flex flex-col">
+        
+        <!-- MAPA DE MISIONES -->
+        <section id="map-section" class="max-w-md mx-auto relative h-[85vh] w-full flex flex-col items-center justify-around">
+            <div class="absolute inset-0 flex justify-center -z-10">
+                <svg width="100" height="100%" class="opacity-20">
+                    <line x1="50" y1="0" x2="50" y2="100%" stroke="indigo" stroke-width="8" stroke-dasharray="15" class="map-path" />
+                </svg>
+            </div>
+
+            <button onclick="startMission('learn')" class="relative group animate__animated animate__pulse animate__infinite">
+                <div class="w-20 h-20 rounded-full bg-white border-8 border-indigo-400 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 transition-transform">🚀</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Mission 1</div>
+            </button>
+
+            <button id="node-spelling" onclick="startMission('spelling')" class="relative group opacity-50 grayscale pointer-events-none">
+                <div class="w-20 h-20 rounded-full bg-white border-8 border-pink-400 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 transition-transform">🛸</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-pink-600 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Mission 2</div>
+            </button>
+
+            <button id="node-phrases" onclick="startMission('phrases')" class="relative group opacity-50 grayscale pointer-events-none">
+                <div class="w-20 h-20 rounded-full bg-white border-8 border-purple-400 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 transition-transform">🪐</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Mission 3</div>
+            </button>
+
+            <!-- Misión 3.5: Orden de Oraciones -->
+            <button id="node-scramble" onclick="startMission('scramble')" class="relative group opacity-50 grayscale pointer-events-none">
+                <div class="w-20 h-20 rounded-full bg-white border-8 border-sky-400 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 transition-transform">🧩</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-sky-600 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Mission 3.5</div>
+            </button>
+
+            <!-- Misión 4: Significados -->
+            <button id="node-meanings" onclick="startMission('meanings')" class="relative group opacity-50 grayscale pointer-events-none">
+                <div class="w-20 h-20 rounded-full bg-white border-8 border-yellow-400 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 transition-transform">📝</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-yellow-600 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Mission 4</div>
+            </button>
+
+            <button id="node-quiz" onclick="startMission('quiz')" class="relative group opacity-50 grayscale pointer-events-none">
+                <div class="w-28 h-28 rounded-[40px] bg-gradient-to-tr from-yellow-400 to-orange-500 border-8 border-white flex items-center justify-center text-5xl shadow-2xl group-hover:scale-110 transition-transform">🌌</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-orange-600 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Final Castle</div>
+            </button>
+
+            <!-- Misión Bonus Mekorama B-01 -->
+            <button id="node-catcher" onclick="startMission('catcher')" class="relative group opacity-50 grayscale pointer-events-none">
+                <div class="w-20 h-20 rounded-full bg-white border-8 border-amber-400 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 transition-transform">🤖</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-4 py-1 rounded-full font-bold text-[10px] whitespace-nowrap uppercase">Mekorama B-01</div>
+            </button>
+        </section>
+
+        <!-- MISIÓN 2: SPELLING -->
+        <section id="spelling-section" class="hidden max-w-2xl mx-auto w-full">
+            <div class="glass p-10 text-center relative overflow-hidden">
+                <div class="flex items-center justify-center gap-4 mb-4">
+                    <div id="spelling-icon" class="text-9xl animate__animated animate__bounceIn">❓</div>
+                    <div class="flex flex-col gap-2">
+                        <button id="spelling-repeat-btn" class="w-16 h-16 bg-white border-4 border-indigo-400 rounded-full flex items-center justify-center text-2xl shadow-lg btn-bounce hover:bg-indigo-50 transition-colors">🔊</button>
+                        <button id="spelling-hint-btn" onclick="showSpellingHint()" class="w-16 h-16 bg-yellow-400 border-4 border-white rounded-full flex items-center justify-center text-2xl shadow-lg btn-bounce hidden animate__animated animate__jackInTheBox">💡</button>
+                    </div>
+                </div>
+                <div id="spelling-slots" class="flex justify-center flex-wrap gap-4 mb-12 min-h-[100px]"></div>
+                <div id="spelling-letters" class="flex flex-wrap justify-center gap-4"></div>
+                
+                <div class="mt-12 h-6 w-full bg-slate-100 rounded-full border-2 border-white overflow-hidden shadow-inner">
+                    <div id="spelling-progress" class="h-full bg-gradient-to-r from-pink-400 to-indigo-500 transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Progress to Mission 3</p>
+
+                <div id="robot-anchor-spelling"></div>
+            </div>
+        </section>
+
+        <!-- MISIÓN 3: PHRASES -->
+        <section id="phrases-section" class="hidden max-w-4xl mx-auto w-full">
+            <div class="mb-8 text-center">
+                <h2 class="text-4xl font-bold-game text-indigo-600 uppercase">Master Phrases 📖</h2>
+                <p class="text-slate-500 font-medium">Listen and see the emoji sentences!</p>
+            </div>
+            <div id="phrases-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            <div class="mt-12 flex justify-center">
+                <button onclick="finishPhrases()" class="px-12 py-5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-3xl font-bold-game text-2xl btn-bounce shadow-xl">
+                    I'M READY FOR MISSION 3.5! 🚀
+                </button>
+            </div>
+        </section>
+
+        <!-- MISIÓN 3.5: SENTENCE SCRAMBLE -->
+        <section id="scramble-section" class="hidden max-w-3xl mx-auto w-full">
+            <div class="glass p-10 text-center relative overflow-hidden">
+                <div class="mb-2 text-indigo-600 font-bold uppercase text-xs" id="scramble-progress-text">Sentence 1/18</div>
+                <h2 class="text-3xl font-bold-game text-sky-600 uppercase mb-2">Sentence Scramble! 🧩</h2>
+                <p class="text-slate-500 mb-6 font-medium">Click the words below to build the sentence in the correct order!</p>
+
+                <!-- Panel de Control Auditivo con Intentos Limitados -->
+                <div class="flex flex-col items-center justify-center mb-6">
+                    <button id="scramble-audio-btn" class="w-16 h-16 bg-sky-100 border-4 border-sky-400 rounded-full flex items-center justify-center text-3xl shadow-lg btn-bounce hover:bg-sky-200 transition-colors disabled:opacity-50 disabled:pointer-events-none">🔊</button>
+                    <!-- Contenedor visual de gemas/puntos de energía de escucha -->
+                    <div id="scramble-attempts-container" class="flex gap-2 mt-3"></div>
+                </div>
+
+                <!-- Área de Construcción de Oración -->
+                <div class="bg-sky-50/50 p-6 rounded-3xl border-4 border-dashed border-sky-200 mb-8 min-h-[120px] flex flex-wrap gap-3 items-center justify-center" id="scramble-slots"></div>
+
+                <!-- Piscina de Palabras Desordenadas -->
+                <div class="flex flex-wrap justify-center gap-3 mb-10" id="scramble-word-pool"></div>
+
+                <!-- Botones de Acción -->
+                <div class="flex justify-center gap-4">
+                    <button onclick="clearScrambleActive()" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-2xl font-bold-game text-lg btn-bounce">RESET 🔄</button>
+                    <button id="scramble-check-btn" onclick="checkScrambleSentence()" class="px-10 py-3 bg-sky-500 text-white rounded-2xl font-bold-game text-lg btn-bounce shadow-lg">CHECK ✅</button>
+                </div>
+
+                <!-- Barra de Progreso de la Misión -->
+                <div class="mt-12 h-6 w-full bg-slate-100 rounded-full border-2 border-white overflow-hidden shadow-inner">
+                    <div id="scramble-progress-bar" class="h-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest font-bold">Progress to Mission 4</p>
+
+                <div id="robot-anchor-scramble"></div>
+            </div>
+        </section>
+
+        <!-- MISIÓN 4: MEANINGS (SIGNIFICADOS) -->
+        <section id="meanings-section" class="hidden max-w-2xl mx-auto w-full">
+            <div class="glass p-10 text-center relative overflow-hidden">
+                <div class="mb-4 text-indigo-600 font-bold uppercase text-xs" id="meanings-progress-text">Definition 1/7</div>
+                <h2 class="text-2xl font-bold-game text-indigo-600 uppercase mb-4">Word Meanings Quest 📝</h2>
+                
+                <div class="bg-indigo-50 p-6 rounded-3xl border-4 border-dashed border-indigo-200 mb-8 min-h-[100px] flex items-center justify-center">
+                    <p id="meanings-definition" class="text-lg md:text-xl text-slate-700 font-medium leading-relaxed"></p>
+                </div>
+                
+                <div id="meanings-options" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                
+                <div class="mt-12 h-6 w-full bg-slate-100 rounded-full border-2 border-white overflow-hidden shadow-inner">
+                    <div id="meanings-progress-bar" class="h-full bg-gradient-to-r from-yellow-400 to-amber-500 transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Progress to Final Castle</p>
+                
+                <div id="robot-anchor-meanings"></div>
+            </div>
+        </section>
+
+        <!-- MISIÓN 1: APRENDIZAJE -->
+        <section id="learn-section" class="hidden w-full">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 max-w-6xl mx-auto" id="learn-grid"></div>
+            
+            <div id="autoplay-container" class="mt-12 flex justify-center w-full animate__animated animate__fadeInUp">
+                <button onclick="startAutoLearn()" class="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-3xl font-bold-game text-2xl btn-bounce shadow-[0_10px_20px_rgba(99,102,241,0.4)] flex items-center gap-3">
+                    <span>▶️</span> AUTO-PLAY LESSON
+                </button>
+            </div>
+        </section>
+
+        <!-- CASTILLO FINAL -->
+        <section id="quiz-section" class="hidden max-w-2xl mx-auto w-full">
+            <div id="quiz-card" class="glass p-12 text-center shadow-2xl relative min-h-[500px] flex flex-col justify-center"></div>
+        </section>
+
+        <!-- SECCIÓN 3D MEKORAMA B-01 (RESPONSIVO Y PANTALLA COMPLETA) -->
+        <section id="catcher-section" class="hidden max-w-7xl w-full mx-auto px-1 transition-all duration-300">
+            <div class="glass p-2 md:p-4 text-center relative overflow-hidden border-2 border-amber-300/40 shadow-2xl bg-white/90">
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-2 px-3 md:px-5 bg-white/90 py-2 rounded-2xl border border-amber-200/60 shadow-sm backdrop-blur-md">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Words:</span>
+                        <span id="meko-score" class="font-bold-game text-2xl text-amber-500 drop-shadow-sm">0 / 16</span>
+                    </div>
+                    
+                    <div id="meko-combo-badge" class="hidden px-3.5 py-1 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 text-white text-xs rounded-full font-bold shadow-md animate__animated animate__pulse animate__infinite flex items-center gap-1.5">
+                        <span>🔥</span> <span id="meko-combo-text">COMBO x2</span>
+                    </div>
+
+                    <!-- Indicador de escudo cósmico -->
+                    <div id="meko-shield-badge" class="hidden px-3 py-1 bg-gradient-to-r from-cyan-400 to-blue-500 text-white text-xs rounded-full font-bold shadow-md animate__animated animate__bounceIn flex items-center gap-1">
+                        <span>🛡️</span> <span>SHIELD ON</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span id="meko-lives" class="text-2xl tracking-widest drop-shadow-sm">❤️❤️❤️</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleMekoramaFullscreen()" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold btn-bounce shadow-md flex items-center gap-1.5 transition-all">
+                            <span id="fs-btn-icon">⛶</span> <span>FULLSCREEN</span>
+                        </button>
+                        <button onclick="showSection('map')" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs btn-bounce transition-colors">🗺️</button>
+                    </div>
+                </div>
+
+                <!-- Contenedor 3D Three.js Limpio y sin textos obstructivos -->
+                <div id="mekorama-canvas-container">
+                    <canvas id="three-mekorama-canvas"></canvas>
+
+                    <!-- Botón Flotante para repetir audio sin textos distractores -->
+                    <div id="meko-banner" class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-full border border-amber-400/80 text-white font-bold-game text-xs md:text-sm shadow-2xl flex items-center gap-3 z-30">
+                        <div class="flex items-center gap-1 px-1">
+                            <span class="audio-wave-bar"></span>
+                            <span class="audio-wave-bar"></span>
+                            <span class="audio-wave-bar"></span>
+                            <span class="audio-wave-bar"></span>
+                        </div>
+                        <button id="meko-listen-target-btn" onclick="playCurrentTargetWord()" class="px-3.5 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-slate-900 rounded-full text-xs font-bold btn-bounce shadow-md flex items-center gap-1 transition-all">
+                            <span>🔊</span> REPEAT
+                        </button>
+                    </div>
+
+                    <!-- Botón de Despegue Final Blast-Off -->
+                    <div id="meko-exit-panel" class="absolute bottom-8 left-1/2 -translate-x-1/2 hidden z-40 animate__animated animate__bounceIn">
+                        <button id="meko-blast-btn" onclick="executeBlastOffSequence()" class="px-12 py-5 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-600 hover:from-yellow-500 hover:to-orange-700 text-white rounded-3xl font-bold-game text-2xl btn-bounce shadow-[0_0_40px_rgba(245,158,11,0.9)] border-4 border-yellow-200 transform hover:scale-105 transition-all">
+                            Enter / Continuar 🚀
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="main-footer" class="w-full py-6 text-center text-indigo-400 font-medium text-sm opacity-60">
+        By Ing. Milko Gonzales C
+    </footer>
+
+    <script>
+        const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyAq9DVA2ee7Vtge9vND5PeucQposM_rYbup_nkP4DSvBxAkYmVBDcSeM3FefSy1g9x/exec";
+
+        let audioCtx;
+        function playClickSound() {
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime); 
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } catch(e) {}
+        }
+
+        function playUFOSuccessSound() {
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 2);
+                
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+                
+                osc.start(now);
+                osc.stop(now + 2.5);
+
+                const lfo = audioCtx.createOscillator();
+                const lfoGain = audioCtx.createGain();
+                lfo.frequency.value = 15;
+                lfoGain.gain.value = 40;
+                
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                
+                lfo.start(now);
+                lfo.stop(now + 2.5);
+            } catch(e) {}
+        }
+
+        function playUFOCrashSound() {
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.linearRampToValueAtTime(80, now + 1.5);
+                
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 1.5);
+                
+                osc.start(now);
+                osc.stop(now + 1.5);
+            } catch(e) {}
+        }
+
+        function runUFOAnimation(isSuccess) {
+            const existing = document.getElementById('ufo-anim-container');
+            if (existing) existing.remove();
+
+            const container = document.createElement('div');
+            container.id = 'ufo-anim-container';
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.pointerEvents = 'none';
+            container.style.zIndex = '99999';
+            document.body.appendChild(container);
+
+            const ufo = document.createElement('div');
+            ufo.innerText = '🛸';
+            ufo.style.position = 'absolute';
+            ufo.style.fontSize = '80px';
+            ufo.style.textShadow = '0 0 20px rgba(99, 102, 241, 0.6)';
+            
+            if (isSuccess) {
+                playUFOSuccessSound();
+                ufo.style.animation = 'ufoFlySuccess 3s cubic-bezier(0.25, 1, 0.5, 1) forwards';
+                container.appendChild(ufo);
+                setTimeout(() => container.remove(), 3500);
+            } else {
+                playUFOCrashSound();
+                ufo.style.animation = 'ufoCrashErratic 1.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards';
+                container.appendChild(ufo);
+                setTimeout(() => {
+                    document.body.classList.add('animate-shake');
+                    setTimeout(() => document.body.classList.remove('animate-shake'), 1000);
+                    setTimeout(() => container.remove(), 1500);
+                }, 1500);
+            }
+        }
+
+        function triggerHaptic(type = 'click') {
+            if (!navigator.vibrate) return;
+            try {
+                if (type === 'click') navigator.vibrate(10);
+                if (type === 'error') navigator.vibrate([30, 40, 30]);
+                if (type === 'success') navigator.vibrate([20, 30, 20, 30, 20]);
+                if (type === 'combo') navigator.vibrate([50, 50, 50, 50, 100]);
+            } catch(e) {}
+        }
+
+        document.addEventListener('click', (e) => {
+            if(e.target.closest('button') || e.target.closest('.cursor-pointer')) {
+                playClickSound();
+                triggerHaptic('click');
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if(Math.random() > 0.4) return; 
+            const trail = document.createElement('div');
+            trail.className = 'magic-trail';
+            trail.style.left = (e.pageX - 4) + 'px';
+            trail.style.top = (e.pageY - 4) + 'px';
+            document.body.appendChild(trail);
+            setTimeout(() => trail.remove(), 600);
+        });
+
+        function createBackgroundBubbles() {
+            const container = document.createElement('div');
+            container.className = 'bg-bubbles';
+            document.body.appendChild(container);
+            for(let i=0; i<15; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = Math.random() * 100 + '%';
+                const size = Math.random() * 40 + 20;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+                bubble.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                bubble.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(bubble);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', createBackgroundBubbles);
+
+        function showFloatingFeedback() {
+            const feedbackWords = ["AWESOME!", "GREAT!", "SUPER!", "PERFECT!", "NICE!"];
+            const text = feedbackWords[Math.floor(Math.random() * feedbackWords.length)];
+            const el = document.createElement('div');
+            el.className = 'floating-feedback';
+            el.innerText = text;
+            el.style.left = '50%';
+            el.style.top = '50%';
+            document.body.appendChild(el);
+            triggerHaptic('success');
+            setTimeout(() => el.remove(), 1500);
+        }
+
+        function showComboFeedback(streak) {
+            const el = document.createElement('div');
+            el.className = 'fixed top-[20%] left-1/2 -translate-x-1/2 font-bold-game text-6xl text-orange-500 z-[9999] pointer-events-none animate__animated animate__tada';
+            el.style.textShadow = '0 6px 0 #b45309, 0 0 30px rgba(255,255,255,0.9)';
+            el.innerHTML = `🔥 ${streak} IN A ROW!`;
+            document.body.appendChild(el);
+            triggerHaptic('combo');
+            setTimeout(() => {
+                el.classList.replace('animate__tada', 'animate__fadeOutUp');
+                setTimeout(() => el.remove(), 1000);
+            }, 1500);
+        }
+
+        const originalVocabulary = [
+            { word: "UNFOLD", icon: '📖' },
+            { word: "REPLAY", icon: '🔁' },
+            { word: "UNTIE", icon: '👟' },
+            { word: "REHEAT", icon: '🍲' },
+            { word: "UNFAIR", icon: '⚖️' },
+            { word: "UNCLEAR", icon: '🌫️' },
+            { word: "REJOIN", icon: '🤝' },
+            { word: "REWRITE", icon: '✍️' },
+            { word: "UNHURT", icon: '🩹' },
+            { word: "RECHECK", icon: '🔍' },
+            { word: "UNLUCKY", icon: '🍀' },
+            { word: "UNWRAP", icon: '🎁' },
+            { word: "REUSE", icon: '♻️' },
+            { word: "UNSURE", icon: '🤔' },
+            { word: "REREAD", icon: '📚' },
+            { word: "UNSAFE", icon: '⚠️' },
+            { word: "UNBUCKLE", icon: '🚗' },
+            { word: "UNKNOWN", icon: '❓' }
+        ];
+
+        const mission4Vocabulary = [
+            { word: "UNFOLD", icon: '📖', definition: 'To open or spread out something that is folded, like a map or paper.' },
+            { word: "REPLAY", icon: '🔁', definition: 'To play a game, video, or piece of music again from the start.' },
+            { word: "UNTIE", icon: '👟', definition: 'To loosen or undo something that is tied with a knot or laces.' },
+            { word: "REHEAT", icon: '🍲', definition: 'To make food warm or hot again before eating it.' },
+            { word: "UNFAIR", icon: '⚖️', definition: 'Not treating people equally, right, or according to the rules.' },
+            { word: "UNCLEAR", icon: '🌫️', definition: 'Difficult to see, hear, or understand easily.' },
+            { word: "REJOIN", icon: '🤝', definition: 'To return to or become a member of a group or game again.' },
+            { word: "REWRITE", icon: '✍️', definition: 'To write something again in order to improve or change it.' },
+            { word: "UNHURT", icon: '🩹', definition: 'Not injured or harmed after an accident or fall.' },
+            { word: "RECHECK", icon: '🔍', definition: 'To examine or check something once again to be certain.' },
+            { word: "UNLUCKY", icon: '🍀', definition: 'Experiencing or having bad luck or unfortunate events.' },
+            { word: "UNWRAP", icon: '🎁', definition: 'To remove the paper or wrapper covering a package or present.' },
+            { word: "REUSE", icon: '♻️', definition: 'To use an object or item again instead of throwing it away.' },
+            { word: "UNSURE", icon: '🤔', definition: 'Not feeling certain, confident, or positive about something.' },
+            { word: "REREAD", icon: '📚', definition: 'To read a book, page, or message again.' },
+            { word: "UNSAFE", icon: '⚠️', definition: 'Involving danger, hazard, or risk of being harmed.' },
+            { word: "UNBUCKLE", icon: '🚗', definition: 'To unfasten or open a buckle, like a car seatbelt.' },
+            { word: "UNKNOWN", icon: '❓', definition: 'Not known, recognized, identified, or familiar to people.' }
+        ];
+
+        const phrasesData = [
+            { phrase: "📖 Please <span class='highlight-word'>UNFOLD</span> the treasure map carefully.", word: "UNFOLD", emojiPhrase: "📖 🗺️ 🔍" },
+            { phrase: "🔁 Let's <span class='highlight-word'>REPLAY</span> the awesome video goal again.", word: "REPLAY", emojiPhrase: "🔁 ⚽ 📺" },
+            { phrase: "👟 Remember to <span class='highlight-word'>UNTIE</span> your shoes before bedtime.", word: "UNTIE", emojiPhrase: "👟 🪢 🛏️" },
+            { phrase: "🍲 Mom will <span class='highlight-word'>REHEAT</span> the delicious vegetable soup.", word: "REHEAT", emojiPhrase: "🍲 ♨️ 🥣" },
+            { phrase: "⚖️ It is <span class='highlight-word'>UNFAIR</span> to cheat while playing tag.", word: "UNFAIR", emojiPhrase: "⚖️ 🛑 🏃‍♂️" },
+            { phrase: "🌫️ The misty lake made the road look <span class='highlight-word'>UNCLEAR</span>.", word: "UNCLEAR", emojiPhrase: "🌫️ 🚗 🌲" },
+            { phrase: "🤝 He will <span class='highlight-word'>REJOIN</span> our study team next week.", word: "REJOIN", emojiPhrase: "🤝 🏫 🎒" },
+            { phrase: "✍️ Please <span class='highlight-word'>REWRITE</span> your name neatly on the test.", word: "REWRITE", emojiPhrase: "✍️ 📝 ✏️" },
+            { phrase: "🩹 The lucky cat was completely <span class='highlight-word'>UNHURT</span>.", word: "UNHURT", emojiPhrase: "🩹 🐱 💖" },
+            { phrase: "🔍 Let us <span class='highlight-word'>RECHECK</span> all the math answers together.", word: "RECHECK", emojiPhrase: "🔍 ➕ 📐" },
+            { phrase: "🍀 He felt <span class='highlight-word'>UNLUCKY</span> when his kite fell down.", word: "UNLUCKY", emojiPhrase: "🍀 🪁 🌧️" },
+            { phrase: "🎁 I will <span class='highlight-word'>UNWRAP</span> the bright birthday box.", word: "UNWRAP", emojiPhrase: "🎁 🎀 ✨" },
+            { phrase: "♻️ We always <span class='highlight-word'>REUSE</span> clean plastic water bottles.", word: "REUSE", emojiPhrase: "♻️ 🍶 🌍" },
+            { phrase: "🤔 She was <span class='highlight-word'>UNSURE</span> of the right bus number.", word: "UNSURE", emojiPhrase: "🤔 🚌 🚏" },
+            { phrase: "📚 He will <span class='highlight-word'>REREAD</span> the mystery story tonight.", word: "REREAD", emojiPhrase: "📚 📖 🌙" },
+            { phrase: "⚠️ Running near slippery pools is totally <span class='highlight-word'>UNSAFE</span>.", word: "UNSAFE", emojiPhrase: "⚠️ 🏊‍♂️ 🚫" },
+            { phrase: "🚗 Please <span class='highlight-word'>UNBUCKLE</span> your seatbelt after parking.", word: "UNBUCKLE", emojiPhrase: "🚗 🔒 🚪" },
+            { phrase: "❓ The astronaut explored the <span class='highlight-word'>UNKNOWN</span> planet.", word: "UNKNOWN", emojiPhrase: "❓ 🚀 🪐" }
+        ];
+
+        let state = {
+            stars: 0,
+            userPower: 'blue',
+            heroName: 'Leo',
+            studentName: '',
+            currentSection: 'map',
+            spellingIdx: 0,
+            spellingErrors: 0,
+            meaningsIdx: 0,
+            scrambleIdx: 0,
+            scrambleQuestions: [],
+            scrambleActiveWords: [],
+            scramblePoolWords: [],
+            scrambleListenCount: 0,
+            quizIdx: 0,
+            quizCorrect: 0,
+            quizStreak: 0,
+            isAutoPlaying: false,
+            currentVocab: [...originalVocabulary],
+            unlockedLevels: ['learn'],
+            finalScore: 0,
+            learnedWords: new Set(),
+            readPhrases: new Set(),
+            wrongQuizWords: new Set()
+        };
+
+        function selectPower(color, name) {
+            state.userPower = color;
+            state.heroName = name;
+            document.documentElement.style.setProperty('--p-color', color === 'blue' ? '#6366f1' : '#ec4899');
+            
+            const bgColor = color === 'blue' ? '3b82f6' : 'ec4899';
+            document.getElementById('hud-avatar').src = `https://api.dicebear.com/7.x/bottts/svg?seed=${name}&backgroundColor=${bgColor}`;
+            document.getElementById('name-modal').classList.remove('hidden');
+        }
+
+        function confirmNameAndStart() {
+            const inputName = document.getElementById('student-name').value;
+            if(!inputName.trim()) {
+                document.getElementById('student-name').classList.add('animate__animated', 'animate__shakeX', 'border-red-400');
+                triggerHaptic('error');
+                setTimeout(() => document.getElementById('student-name').classList.remove('animate__animated', 'animate__shakeX'), 500);
+                return;
+            }
+            state.studentName = inputName;
+            
+            const hudUsername = document.getElementById('hud-username');
+            if (hudUsername) {
+                hudUsername.innerText = inputName;
+                hudUsername.classList.remove('hidden');
+            }
+
+            document.getElementById('name-modal').classList.add('hidden');
+            document.getElementById('onboarding').classList.add('animate__animated', 'animate__fadeOutUp');
+            setTimeout(() => {
+                document.getElementById('onboarding').classList.add('hidden');
+                document.getElementById('game-container').classList.remove('opacity-0');
+                updateSpeech(`Hi ${state.studentName}! I'm ${state.heroName}. Welcome to the Quest!`);
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } }); 
+                triggerHaptic('success');
+            }, 500);
+        }
+
+        function updateSpeech(text) {
+            document.getElementById('leo-talk').innerText = text;
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'en-US';
+            const avatarContainer = document.getElementById('leo-avatar-container');
+            utter.onstart = () => avatarContainer.classList.add('is-talking');
+            utter.onend = () => avatarContainer.classList.remove('is-talking');
+            speechSynthesis.speak(utter);
+        }
+
+        function playWord(word) {
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(word.toLowerCase());
+            utter.lang = 'en-US';
+            utter.rate = 0.7;
+            speechSynthesis.speak(utter);
+        }
+
+        function playPhrase(text) {
+            speechSynthesis.cancel();
+            const cleanText = text.replace(/<[^>]*>/g, '').replace(/[^\w\s\?!\.,']/g, '');
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = 'en-US';
+            utter.rate = 0.8;
+            speechSynthesis.speak(utter);
+        }
+
+        function playLetter(letter) {
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(letter.toLowerCase());
+            utter.lang = 'en-US';
+            utter.rate = 1.0;
+            speechSynthesis.speak(utter);
+        }
+
+        function startMission(id) {
+            state.isAutoPlaying = false; 
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            const target = document.getElementById(`${id}-section`);
+            if(target) target.classList.remove('hidden');
+            state.currentSection = id;
+            
+            const robot = document.getElementById('mission-toast');
+            const footer = document.getElementById('main-footer');
+
+            if(id === 'catcher') {
+                // Ocultar completamente el robot 2D inferior y el pie de página durante el juego 3D
+                if (robot) robot.style.display = 'none';
+                if (footer) footer.style.display = 'none';
+                initMekorama3DExperience();
+            } else {
+                if (robot) robot.style.display = '';
+                if (footer) footer.style.display = '';
+                
+                if(id === 'spelling') {
+                    document.getElementById('robot-anchor-spelling').appendChild(robot);
+                    robot.classList.remove('robot-default-pos');
+                    robot.classList.add('robot-spelling-pos');
+                    state.spellingIdx = 0; 
+                    state.spellingErrors = 0;
+                    renderSpelling(); 
+                } else if(id === 'meanings') {
+                    document.getElementById('robot-anchor-meanings').appendChild(robot);
+                    robot.classList.remove('robot-default-pos');
+                    robot.classList.add('robot-spelling-pos');
+                    state.meaningsIdx = 0;
+                    updateSpeech("Listen to the definition and choose the correct word!");
+                    setTimeout(renderMeanings, 3000);
+                } else if(id === 'scramble') {
+                    document.getElementById('robot-anchor-scramble').appendChild(robot);
+                    robot.classList.remove('robot-default-pos');
+                    robot.classList.add('robot-spelling-pos');
+                    initScrambleQuest();
+                } else {
+                    document.body.appendChild(robot);
+                    robot.classList.remove('robot-spelling-pos');
+                    robot.classList.add('robot-default-pos');
+                    if(id === 'learn') renderLearn();
+                    if(id === 'phrases') renderPhrases();
+                    if(id === 'quiz') { state.quizIdx = 0; state.quizCorrect = 0; state.quizStreak = 0; state.wrongQuizWords.clear(); renderQuiz(); }
+                }
+            }
+        }
+
+        function showSection(id) { startMission(id); }
+
+        function renderLearn() {
+            const grid = document.getElementById('learn-grid');
+            grid.innerHTML = originalVocabulary.map((v, i) => `
+                <div id="learn-card-${i}" onclick="learnClick(this, '${v.word.replace(/'/g, "\\'")}')" class="glass p-6 cursor-pointer btn-bounce flex flex-col items-center group relative transition-all duration-300 ${state.wrongQuizWords.has(v.word) ? 'wrong-highlight' : ''}">
+                    <div class="word-check absolute top-4 right-4 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] ${state.learnedWords.has(v.word) ? 'scale-100' : 'scale-0'} transition-transform">✓</div>
+                    <span class="text-5xl group-hover:scale-125 transition-transform">${v.icon}</span>
+                    <span class="mt-4 font-bold-game text-xl text-indigo-600 uppercase">${v.word}</span>
+                </div>
+            `).join('');
+            
+            const autoplayBtn = document.getElementById('autoplay-container');
+            if(autoplayBtn) autoplayBtn.classList.remove('hidden');
+            
+            if (state.wrongQuizWords.size > 0) {
+                updateSpeech("Please review the words highlighted in yellow!");
+            } else {
+                updateSpeech("Tap the cards to hear the words!");
+            }
+        }
+
+        async function startAutoLearn() {
+            if(state.isAutoPlaying) return;
+            state.isAutoPlaying = true;
+            document.getElementById('autoplay-container').classList.add('hidden');
+            updateSpeech("Listen carefully!");
+            
+            for(let i=0; i<originalVocabulary.length; i++) {
+                if(!state.isAutoPlaying || state.currentSection !== 'learn') break; 
+                const card = document.getElementById(`learn-card-${i}`);
+                if(card) {
+                    card.classList.add('auto-play-highlight');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    learnClick(card, originalVocabulary[i].word);
+                    await new Promise(r => setTimeout(r, 2000));
+                    card.classList.remove('auto-play-highlight');
+                }
+            }
+            state.isAutoPlaying = false;
+        }
+
+        function learnClick(el, word) {
+            playWord(word);
+            createSparkles(el);
+            
+            const check = el.querySelector('.word-check');
+            if (check && !state.learnedWords.has(word)) {
+                check.classList.remove('scale-0');
+                check.classList.add('scale-100', 'animate__animated', 'animate__bounceIn');
+                state.learnedWords.add(word);
+                updateStars(1);
+            }
+
+            if (state.learnedWords.size === originalVocabulary.length) {
+                if (!state.unlockedLevels.includes('spelling')) {
+                    state.unlockedLevels.push('spelling');
+                    const node = document.getElementById('node-spelling');
+                    node.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                    node.classList.add('animate__animated', 'animate__rubberBand');
+                }
+                setTimeout(showNextMissionModal, 1200);
+            }
+        }
+
+        function showNextMissionModal() {
+            document.getElementById('next-mission-modal').classList.remove('hidden');
+            triggerHaptic('success');
+        }
+
+        function closeNextMissionModal() {
+            document.getElementById('next-mission-modal').classList.add('hidden');
+        }
+
+        function handleContinueHere() {
+            state.learnedWords.clear();
+            if (state.currentSection === 'learn') {
+                renderLearn();
+            }
+            closeNextMissionModal();
+            updateSpeech("Ready to practice again!");
+        }
+
+        function goToSpellingFromModal() {
+            closeNextMissionModal();
+            startMission('spelling');
+        }
+
+        function renderSpelling() {
+            const progress = (state.spellingIdx / originalVocabulary.length) * 100;
+            const bar = document.getElementById('spelling-progress');
+            if(bar) bar.style.width = `${progress}%`;
+            document.getElementById('spelling-hint-btn').classList.add('hidden');
+
+            if (state.spellingIdx >= originalVocabulary.length) {
+                if(!state.unlockedLevels.includes('phrases')) {
+                    state.unlockedLevels.push('phrases');
+                    const node = document.getElementById('node-phrases');
+                    node.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                    node.classList.add('animate__animated', 'animate__bounceIn');
+                }
+                updateSpeech("Great job! Let's learn sentences.");
+                triggerHaptic('success');
+                setTimeout(() => startMission('phrases'), 2000);
+                return;
+            }
+
+            const current = originalVocabulary[state.spellingIdx];
+            document.getElementById('spelling-icon').innerText = current.icon;
+            document.getElementById('spelling-repeat-btn').onclick = () => playWord(current.word);
+            document.getElementById('spelling-slots').innerHTML = current.word.split('').map(() => `
+                <div class="w-14 h-16 border-4 border-dashed border-slate-300 rounded-2xl flex items-center justify-center text-3xl font-bold-game text-indigo-600 bg-white/50 transition-all duration-300 uppercase"></div>
+            `).join('');
+            
+            const letters = current.word.split('').sort(() => Math.random() - 0.5);
+            document.getElementById('spelling-letters').innerHTML = letters.map(l => {
+                const escapedLetter = l === "'" ? "&#x27;" : l;
+                const param = l === "'" ? "\\'" : l;
+                return `
+                    <button onclick="checkLetter('${param}', this)" class="w-14 h-14 glass font-bold-game text-2xl text-slate-700 btn-bounce uppercase">${escapedLetter}</button>
+                `;
+            }).join('');
+            playWord(current.word);
+        }
+
+        function checkLetter(l, btn) {
+            const word = originalVocabulary[state.spellingIdx].word.toUpperCase();
+            const slots = document.getElementById('spelling-slots').children;
+            const next = Array.from(slots).findIndex(s => s.innerText === "");
+            playLetter(l);
+            
+            if(word[next] === l.toUpperCase()) {
+                slots[next].innerText = l.toUpperCase();
+                btn.classList.add('opacity-0', 'pointer-events-none');
+                if(Array.from(slots).every(s => s.innerText !== "")) {
+                    confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+                    showFloatingFeedback(); 
+                    setTimeout(() => playWord(word), 800);
+                    state.spellingIdx++;
+                    state.spellingErrors = 0; 
+                    setTimeout(renderSpelling, 2500);
+                }
+            } else {
+                state.spellingErrors++;
+                triggerHaptic('error');
+                btn.classList.add('animate__animated', 'animate__headShake', 'bg-red-50');
+                setTimeout(() => btn.classList.remove('animate__animated', 'animate__headShake', 'bg-red-50'), 500);
+                if(state.spellingErrors >= 3) document.getElementById('spelling-hint-btn').classList.remove('hidden');
+            }
+        }
+
+        function showSpellingHint() {
+            const word = originalVocabulary[state.spellingIdx].word.toUpperCase();
+            const slots = document.getElementById('spelling-slots').children;
+            const originalContents = Array.from(slots).map(s => s.innerText);
+            Array.from(slots).forEach((slot, i) => {
+                if(!slot.innerText) {
+                    slot.innerText = word[i];
+                    slot.classList.add('text-yellow-500', 'scale-110');
+                }
+            });
+            setTimeout(() => {
+                Array.from(slots).forEach((slot, i) => {
+                    if(!originalContents[i]) {
+                        slot.innerText = "";
+                        slot.classList.remove('text-yellow-500', 'scale-110');
+                    }
+                });
+            }, 800);
+        }
+
+        function renderPhrases() {
+            const grid = document.getElementById('phrases-grid');
+            grid.innerHTML = phrasesData.map((item, i) => `
+                <div onclick="phraseClick(this, '${item.word.replace(/'/g, "\\'")}', '${item.phrase.replace(/'/g, "\\'")}')" class="glass p-6 phrase-card flex flex-col gap-4 border-2 border-transparent relative group">
+                    <div class="phrase-check absolute top-4 right-4 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] scale-0 transition-transform ${state.readPhrases.has(item.word) ? 'scale-100' : ''}">✓</div>
+                    <div class="flex items-center justify-between">
+                        <span class="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold uppercase">Sentence ${i+1}</span>
+                    </div>
+                    <p class="text-2xl text-slate-700 leading-relaxed font-game">
+                        ${item.phrase}
+                    </p>
+                    <div class="mt-2 pt-4 border-t border-dashed border-indigo-100 text-3xl flex justify-center tracking-[0.5em]">
+                        ${item.emojiPhrase}
+                    </div>
+                </div>
+            `).join('');
+            updateSpeech("Click on the sentences to hear them!");
+        }
+
+        function phraseClick(el, word, phraseText) {
+            playPhrase(phraseText);
+            createSparkles(el);
+            
+            const check = el.querySelector('.phrase-check');
+            if (check && !state.readPhrases.has(word)) {
+                check.classList.remove('scale-0');
+                check.classList.add('scale-100', 'animate__animated', 'animate__bounceIn');
+                state.readPhrases.add(word);
+                updateStars(2);
+                
+                if (state.readPhrases.size === phrasesData.length) {
+                    showFloatingFeedback();
+                    updateSpeech("Wonderful! You read all the sentences!");
+                }
+            }
+        }
+
+        function finishPhrases() {
+            if(!state.unlockedLevels.includes('scramble')) {
+                state.unlockedLevels.push('scramble');
+                const node = document.getElementById('node-scramble');
+                node.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                node.classList.add('animate__animated', 'animate__rubberBand');
+            }
+            updateSpeech("Awesome! Let's play Sentence Scramble now!");
+            triggerHaptic('success');
+            setTimeout(() => startMission('scramble'), 1500);
+        }
+
+        function cleanSentenceForScramble(phrase) {
+            let cleaned = phrase.replace(/<[^>]*>/g, '');
+            cleaned = cleaned.replace(/[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|[\ufe00-\ufe0f]|[\u200d\u200b\u200c]/g, '');
+            cleaned = cleaned.replace(/\s+/g, ' ').trim();
+            return cleaned;
+        }
+
+        function initScrambleQuest() {
+            state.scrambleIdx = 0;
+            const shuffled = [...phrasesData].sort(() => Math.random() - 0.5);
+            state.scrambleQuestions = shuffled;
+            updateSpeech("Let's order the sentences! Click the speaker to hear!");
+            setTimeout(renderScramble, 2000);
+        }
+
+        function renderScramble() {
+            if(state.scrambleIdx >= state.scrambleQuestions.length) {
+                finishScramble();
+                return;
+            }
+
+            state.scrambleListenCount = 0;
+
+            const progress = (state.scrambleIdx / state.scrambleQuestions.length) * 100;
+            const bar = document.getElementById('scramble-progress-bar');
+            if(bar) bar.style.width = `${progress}%`;
+
+            const txt = document.getElementById('scramble-progress-text');
+            if(txt) txt.innerText = `Sentence ${state.scrambleIdx + 1}/${state.scrambleQuestions.length}`;
+
+            const currentObj = state.scrambleQuestions[state.scrambleIdx];
+            const cleanText = cleanSentenceForScramble(currentObj.phrase);
+            const originalWords = cleanText.split(' ');
+            
+            state.scrambleActiveWords = [];
+            state.scramblePoolWords = originalWords.map((word, i) => ({ id: i, word: word }))
+                                                    .sort(() => Math.random() - 0.5);
+
+            const audioBtn = document.getElementById('scramble-audio-btn');
+            audioBtn.disabled = false;
+            audioBtn.onclick = () => handleScrambleListen(cleanText);
+            
+            renderScrambleBoards();
+            drawScrambleAttempts();
+        }
+
+        function drawScrambleAttempts() {
+            const container = document.getElementById('scramble-attempts-container');
+            if (!container) return;
+            
+            let html = '';
+            const totalAttempts = 3;
+            const remaining = totalAttempts - state.scrambleListenCount;
+            
+            for (let i = 0; i < totalAttempts; i++) {
+                if (i < remaining) {
+                    html += `<span class="w-4 h-4 rounded-full bg-sky-400 border-2 border-white shadow-md animate__animated animate__bounceIn"></span>`;
+                } else {
+                    html += `<span class="w-4 h-4 rounded-full bg-slate-300 border-2 border-white shadow-inner"></span>`;
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        function handleScrambleListen(cleanText) {
+            if (state.scrambleListenCount >= 3) return;
+            
+            playPhrase(cleanText);
+            state.scrambleListenCount++;
+            drawScrambleAttempts();
+            
+            if (state.scrambleListenCount >= 3) {
+                const audioBtn = document.getElementById('scramble-audio-btn');
+                if (audioBtn) audioBtn.disabled = true;
+                
+                updateSpeech("You used all 3 listens! Build your sentence and press CHECK!");
+                triggerHaptic('error');
+            }
+        }
+
+        function renderScrambleBoards() {
+            const slotsContainer = document.getElementById('scramble-slots');
+            const poolContainer = document.getElementById('scramble-word-pool');
+
+            if(state.scrambleActiveWords.length === 0) {
+                slotsContainer.innerHTML = `<span class="text-slate-400 font-game text-xl italic pointer-events-none">Tap words below to build here...</span>`;
+            } else {
+                slotsContainer.innerHTML = state.scrambleActiveWords.map((item, index) => `
+                    <button onclick="removeWordFromActive(${index})" class="px-4 py-2 bg-white text-indigo-700 font-game text-lg font-bold border-2 border-indigo-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors btn-bounce">${item.word}</button>
+                `).join('');
+            }
+
+            poolContainer.innerHTML = state.scramblePoolWords.map(item => `
+                <button onclick="addWordToActive(${item.id})" class="px-4 py-2 bg-sky-100 text-sky-800 font-game text-lg font-bold border-2 border-sky-300 rounded-xl hover:bg-sky-200 transition-colors btn-bounce">${item.word}</button>
+            `).join('');
+        }
+
+        function addWordToActive(id) {
+            const index = state.scramblePoolWords.findIndex(w => w.id === id);
+            if (index > -1) {
+                const item = state.scramblePoolWords.splice(index, 1)[0];
+                state.scrambleActiveWords.push(item);
+                playLetter(item.word);
+                renderScrambleBoards();
+            }
+        }
+
+        function removeWordFromActive(index) {
+            const item = state.scrambleActiveWords.splice(index, 1)[0];
+            state.scramblePoolWords.push(item);
+            playLetter(item.word);
+            renderScrambleBoards();
+        }
+
+        function clearScrambleActive() {
+            const currentObj = state.scrambleQuestions[state.scrambleIdx];
+            const cleanText = cleanSentenceForScramble(currentObj.phrase);
+            const originalWords = cleanText.split(' ');
+            
+            state.scrambleActiveWords = [];
+            state.scramblePoolWords = originalWords.map((word, i) => ({ id: i, word: word }))
+                                                    .sort(() => Math.random() - 0.5);
+            renderScrambleBoards();
+            playClickSound();
+        }
+
+        function checkScrambleSentence() {
+            const currentObj = state.scrambleQuestions[state.scrambleIdx];
+            const cleanText = cleanSentenceForScramble(currentObj.phrase);
+            const builtText = state.scrambleActiveWords.map(item => item.word).join(' ');
+
+            if (builtText === cleanText) {
+                confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+                showFloatingFeedback();
+                updateStars(3); 
+                
+                const slots = document.getElementById('scramble-slots');
+                slots.classList.add('bg-green-100', 'border-green-400');
+                setTimeout(() => {
+                    slots.classList.remove('bg-green-100', 'border-green-400');
+                    state.scrambleIdx++;
+                    renderScramble();
+                }, 1500);
+            } else {
+                triggerHaptic('error');
+                const slots = document.getElementById('scramble-slots');
+                slots.classList.add('bg-red-100', 'border-red-400', 'animate__animated', 'animate__headShake');
+                setTimeout(() => {
+                    slots.classList.remove('bg-red-100', 'border-red-400', 'animate__animated', 'animate__headShake');
+                }, 800);
+                
+                if (state.scrambleListenCount >= 3) {
+                    updateSpeech("Not quite right! Since you used all your listens, let's try the next sentence!");
+                    setTimeout(() => {
+                        state.scrambleIdx++;
+                        renderScramble();
+                    }, 2500);
+                } else {
+                    updateSpeech("Not quite right. Check the order and try again!");
+                }
+            }
+        }
+
+        function finishScramble() {
+            if(!state.unlockedLevels.includes('meanings')) {
+                state.unlockedLevels.push('meanings');
+                const node = document.getElementById('node-meanings');
+                node.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                node.classList.add('animate__animated', 'animate__bounceIn');
+            }
+            updateSpeech("Amazing ordering skills! Now let's match definitions!");
+            triggerHaptic('success');
+            setTimeout(() => startMission('meanings'), 2000);
+        }
+
+        function renderMeanings() {
+            const progress = (state.meaningsIdx / mission4Vocabulary.length) * 100;
+            const bar = document.getElementById('meanings-progress-bar');
+            if(bar) bar.style.width = `${progress}%`;
+            
+            const txt = document.getElementById('meanings-progress-text');
+            if(txt) txt.innerText = `Definition ${state.meaningsIdx + 1}/${mission4Vocabulary.length}`;
+
+            if (state.meaningsIdx >= mission4Vocabulary.length) {
+                if(!state.unlockedLevels.includes('quiz')) {
+                    state.unlockedLevels.push('quiz');
+                    const node = document.getElementById('node-quiz');
+                    node.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                    node.classList.add('animate__animated', 'animate__bounceIn');
+                }
+                updateSpeech("Excellent! You unlocked the Final Castle Quiz!");
+                triggerHaptic('success');
+                setTimeout(() => startMission('quiz'), 2000);
+                return;
+            }
+
+            const current = mission4Vocabulary[state.meaningsIdx];
+            document.getElementById('meanings-definition').innerText = current.definition;
+            
+            let options = [current.word];
+            const pool = [...originalVocabulary, ...mission4Vocabulary].filter(v => v.word !== current.word);
+            while(options.length < 4) {
+                const rnd = pool[Math.floor(Math.random() * pool.length)].word;
+                if(!options.includes(rnd)) options.push(rnd);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsContainer = document.getElementById('meanings-options');
+            optionsContainer.innerHTML = options.map(opt => {
+                const wordObj = [...originalVocabulary, ...mission4Vocabulary].find(w => w.word === opt);
+                return `
+                    <button onclick="checkMeaningAnswer('${opt.replace(/'/g, "\\'")}', this)" class="glass p-6 text-2xl font-bold-game text-indigo-700 btn-bounce uppercase flex items-center justify-center gap-3">
+                        <span class="text-3xl">${wordObj ? wordObj.icon : '❓'}</span>
+                        <span>${opt}</span>
+                    </button>
+                `;
+            }).join('');
+            
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(current.definition);
+            utter.lang = 'en-US';
+            utter.rate = 0.85;
+            speechSynthesis.speak(utter);
+        }
+
+        function checkMeaningAnswer(answer, btn) {
+            const current = mission4Vocabulary[state.meaningsIdx];
+            const allBtns = btn.parentElement.querySelectorAll('button');
+            allBtns.forEach(b => b.style.pointerEvents = 'none');
+
+            if(answer === current.word) {
+                btn.classList.add('bg-green-400', 'text-white', 'border-green-500');
+                confetti({ particleCount: 15 });
+                showFloatingFeedback(); 
+                updateStars(2);
+                state.meaningsIdx++;
+                setTimeout(renderMeanings, 1200);
+            } else {
+                triggerHaptic('error');
+                btn.classList.add('bg-red-400', 'text-white', 'border-red-500', 'animate__animated', 'animate__shakeX');
+                
+                allBtns.forEach(b => {
+                    const btnText = b.querySelector('span:last-child').innerText;
+                    if(btnText === current.word) {
+                        b.classList.add('bg-green-200', 'border-green-400');
+                    }
+                });
+
+                state.meaningsIdx++;
+                setTimeout(renderMeanings, 1800);
+            }
+        }
+
+        function renderQuiz() {
+            const card = document.getElementById('quiz-card');
+            if(state.quizIdx >= state.currentVocab.length) { finishQuiz(); return; }
+            
+            const current = state.currentVocab[state.quizIdx];
+            let options = [current.word];
+            const others = [...originalVocabulary, ...mission4Vocabulary].filter(v => v.word !== current.word);
+            while(options.length < 4) {
+                const rnd = others[Math.floor(Math.random() * others.length)].word;
+                if(!options.includes(rnd)) options.push(rnd);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            let comboHTML = '';
+            if(state.quizStreak >= 2) {
+                comboHTML = `<div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-orange-500 text-white font-bold-game px-4 py-1 rounded-full animate__animated animate__heartBeat shadow-lg">🔥 STREAK x${state.quizStreak}</div>`;
+            }
+
+            card.innerHTML = `
+                ${comboHTML}
+                <div class="mb-4 text-indigo-600 font-bold uppercase text-xs">Question ${state.quizIdx + 1}/${state.currentVocab.length}</div>
+                <div class="text-9xl mb-4 animate__animated animate__zoomIn">${current.icon}</div>
+                <button onclick="playWord('${current.word.replace(/'/g, "\\'")}')" class="w-14 h-14 mx-auto mb-8 bg-white border-2 border-indigo-200 rounded-full flex items-center justify-center text-xl shadow-md btn-bounce hover:bg-indigo-50 transition-colors">🔊</button>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    ${options.map(opt => `
+                        <button onclick="checkQuizAnswer('${opt.replace(/'/g, "\\'")}', this)" class="glass p-6 text-3xl font-bold-game text-indigo-700 btn-bounce uppercase">${opt}</button>
+                    `).join('')}
+                </div>
+            `;
+            playWord(current.word);
+        }
+
+        function checkQuizAnswer(answer, btn) {
+            const current = state.currentVocab[state.quizIdx];
+            if(answer === current.word) {
+                state.quizCorrect++;
+                state.quizStreak++; 
+                btn.classList.add('bg-green-400', 'text-white', 'border-green-500');
+                confetti({ particleCount: 15 });
+                showFloatingFeedback(); 
+                if(state.quizStreak === 3 || state.quizStreak === 5 || state.quizStreak === 10) showComboFeedback(state.quizStreak);
+            } else {
+                state.quizStreak = 0; 
+                state.wrongQuizWords.add(current.word);
+                triggerHaptic('error');
+                btn.classList.add('bg-red-400', 'text-white', 'border-red-500', 'animate__animated', 'animate__shakeX');
+            }
+            state.quizIdx++;
+            const allBtns = btn.parentElement.querySelectorAll('button');
+            allBtns.forEach(b => b.style.pointerEvents = 'none');
+            setTimeout(renderQuiz, 1000);
+        }
+
+        function saveResultsToExcel(scorePercentage) {
+            const data = {
+                name: state.studentName,
+                grade: "3RD UNIT 27",
+                testResult: scorePercentage + "%",
+                date: new Date().toLocaleString()
+            };
+
+            fetch(ENDPOINT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).catch(err => console.error("Excel log error:", err));
+        }
+
+        function finishQuiz() {
+            state.finalScore = Math.round((state.quizCorrect / state.currentVocab.length) * 100);
+            const card = document.getElementById('quiz-card');
+            saveResultsToExcel(state.finalScore);
+
+            if(!state.unlockedLevels.includes('catcher')) {
+                state.unlockedLevels.push('catcher');
+                const node = document.getElementById('node-catcher');
+                if(node) {
+                    node.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                    node.classList.add('animate__animated', 'animate__rubberBand');
+                }
+            }
+
+            if(state.finalScore >= 80) {
+                triggerHaptic('success');
+                card.innerHTML = `
+                    <h2 class="text-5xl font-bold-game text-yellow-500 mb-6 animate__animated animate__tada">MISSION COMPLETE!</h2>
+                    <div class="text-9xl mb-8 animate__animated animate__bounceIn">🏆</div>
+                    <p class="text-2xl font-bold-game text-slate-600 mb-8">Final Score: ${state.finalScore}%</p>
+                    <div class="flex flex-col gap-4 max-w-sm mx-auto animate__animated animate__fadeInUp animate__delay-1s">
+                        <button onclick="startMission('catcher')" class="glass px-8 py-4 text-xl font-bold-game bg-amber-500 text-white btn-bounce uppercase shadow-[0_10px_20px_rgba(245,158,11,0.4)]">Play Mekorama B-01 🤖</button>
+                        <button onclick="generateCertificate(state.finalScore, state.studentName.toUpperCase())" class="glass px-8 py-4 text-xl font-bold-game bg-indigo-600 text-white btn-bounce uppercase shadow-[0_10px_20px_rgba(99,102,241,0.4)]">Get Diploma 📜</button>
+                        <button onclick="restartGameQuest()" class="glass px-8 py-4 text-lg font-bold-game bg-slate-200 text-slate-700 btn-bounce uppercase">RESTART QUEST</button>
+                    </div>
+                `;
+                updateSpeech(`Congratulations ${state.studentName}! You can now play the Mekorama B-01 mission!`);
+                confetti({ particleCount: 200, spread: 160, origin: { y: 0.6 } });
+            } else {
+                triggerHaptic('error');
+                runUFOAnimation(false);
+                card.innerHTML = `
+                    <h2 class="text-5xl font-bold-game text-red-500 mb-6">RETRY NEEDED!</h2>
+                    <div class="text-8xl mb-8">🛸💥</div>
+                    <p class="text-xl font-medium text-slate-600 mb-8">You got ${state.finalScore}%. You need 80% to pass.</p>
+                    <button onclick="goToReview()" class="glass px-8 py-4 text-xl font-bold-game bg-orange-500 text-white btn-bounce uppercase">Go to Review</button>
+                `;
+                updateSpeech("Let's review the words you missed!");
+            }
+        }
+
+        function goToReview() {
+            state.learnedWords.clear();
+            startMission('learn');
+        }
+
+        function restartGameQuest() {
+            state.quizIdx = 0; state.quizCorrect = 0; state.spellingIdx = 0; state.meaningsIdx = 0; state.scrambleIdx = 0; state.quizStreak = 0;
+            showSection('map');
+        }
+
+        function drawCuteStar(doc, cx, cy, r) {
+            doc.setFillColor(251, 191, 36); 
+            doc.triangle(cx, cy - r, cx - r/2, cy, cx + r/2, cy, 'F');
+            doc.triangle(cx, cy + r, cx - r/2, cy, cx + r/2, cy, 'F');
+        }
+
+        function generateCertificate(score, name) {
+            runUFOAnimation(true);
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            const w = doc.internal.pageSize.getWidth();
+            const h = doc.internal.pageSize.getHeight();
+            
+            doc.setFillColor(255, 251, 235);
+            doc.rect(0, 0, w, h, 'F');
+            
+            doc.setDrawColor(99, 102, 241); 
+            doc.setLineWidth(4);
+            doc.roundedRect(8, 8, w - 16, h - 16, 8, 8, 'D');
+
+            doc.setDrawColor(244, 63, 94); 
+            doc.setLineWidth(1.5);
+            doc.roundedRect(12, 12, w - 24, h - 24, 6, 6, 'D');
+
+            drawCuteStar(doc, 22, 22, 7);
+            drawCuteStar(doc, w - 22, 22, 7);
+            drawCuteStar(doc, 22, h - 22, 7);
+            drawCuteStar(doc, w - 22, h - 22, 7);
+
+            doc.setFillColor(99, 102, 241);
+            doc.roundedRect(w/2 - 95, 20, 190, 15, 4, 4, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24);
+            doc.text("SUPER WORD QUEST HERO", w/2, 30.5, { align: 'center' });
+            
+            doc.setTextColor(244, 63, 94);
+            doc.setFontSize(13);
+            doc.setFont("helvetica", "bold");
+            doc.text("FOOTPRINTS ENGLISH ACADEMY", w/2, 45, { align: 'center' });
+            
+            doc.setTextColor(71, 85, 105);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12.5);
+            doc.text("This awesome diploma is proudly presented to", w/2, 57, { align: 'center' });
+            
+            doc.setTextColor(79, 70, 229); 
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(36);
+            doc.text(name, w/2, 72, { align: 'center' });
+            
+            doc.setFillColor(244, 114, 182); 
+            doc.rect(w/2 - 50, 75.5, 100, 1.2, 'F');
+            
+            doc.setTextColor(71, 85, 105);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12.5);
+            doc.text("for successfully mastering the English cosmic vocabulary with stellar scores!", w/2, 85, { align: 'center' });
+            
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(15, 23, 42);
+            doc.text("THIRD GRADE • UNIT 27 ACADEMY CHALLENGE", w/2, 92, { align: 'center' });
+            
+            doc.save(`Diploma_${name}.pdf`);
+        }
+
+        function updateStars(n) {
+            state.stars += n;
+            const counter = document.getElementById('stars-count');
+            if(counter) {
+                counter.innerText = state.stars;
+                counter.classList.add('animate__animated', 'animate__heartBeat');
+                setTimeout(() => counter.classList.remove('animate__animated', 'animate__heartBeat'), 1000);
+            }
+        }
+
+        function createSparkles(el) {
+            if(!el) return;
+            const rect = el.getBoundingClientRect();
+            for(let i=0; i<6; i++) {
+                const s = document.createElement('div');
+                s.className = 'sparkle';
+                s.style.left = (rect.left + rect.width/2) + 'px';
+                s.style.top = (rect.top + rect.height/2) + 'px';
+                s.style.setProperty('--tx', (Math.random()-0.5) * 120 + 'px');
+                s.style.setProperty('--ty', (Math.random()-0.5) * 120 + 'px');
+                document.body.appendChild(s);
+                setTimeout(() => s.remove(), 800);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'u') {
+                e.preventDefault();
+                shortcutMasterSkip();
+            }
+        });
+
+        function shortcutMasterSkip() {
+            if (!state.studentName) {
+                updateSpeech("Please enter your name first!");
+                return;
+            }
+            confetti({ particleCount: 50, spread: 70, origin: { y: 0.5 } });
+            if (state.currentSection === 'map') {
+                if (state.unlockedLevels.includes('quiz')) startMission('quiz');
+                else if (state.unlockedLevels.includes('meanings')) startMission('meanings');
+                else if (state.unlockedLevels.includes('scramble')) startMission('scramble');
+                else if (state.unlockedLevels.includes('phrases')) startMission('phrases');
+                else if (state.unlockedLevels.includes('spelling')) startMission('spelling');
+                else startMission('learn');
+            } else if (state.currentSection === 'learn') {
+                originalVocabulary.forEach(v => state.learnedWords.add(v.word));
+                state.stars += originalVocabulary.length;
+                if (!state.unlockedLevels.includes('spelling')) state.unlockedLevels.push('spelling');
+                startMission('spelling');
+            } else if (state.currentSection === 'spelling') {
+                state.spellingIdx = originalVocabulary.length;
+                if (!state.unlockedLevels.includes('phrases')) {
+                    state.unlockedLevels.push('phrases');
+                }
+                renderSpelling(); 
+            } else if (state.currentSection === 'phrases') {
+                phrasesData.forEach(p => state.readPhrases.add(p.word));
+                state.stars += phrasesData.length * 2;
+                finishPhrases();
+            } else if (state.currentSection === 'scramble') {
+                state.scrambleIdx = state.scrambleQuestions.length;
+                if (!state.unlockedLevels.includes('meanings')) state.unlockedLevels.push('meanings');
+                finishScramble();
+            } else if (state.currentSection === 'meanings') {
+                state.meaningsIdx = mission4Vocabulary.length;
+                if (!state.unlockedLevels.includes('quiz')) state.unlockedLevels.push('quiz');
+                renderMeanings();
+            } else if (state.currentSection === 'quiz') {
+                state.quizIdx = state.currentVocab.length;
+                state.quizCorrect = state.currentVocab.length;
+                finishQuiz();
+            }
+            updateSpeech("Master Skip activated!");
+        }
+
+        /* =========================================================================
+           THREE.JS MEKORAMA B-01 EXPERT COMPONENT & SYNTHESIZED WEB AUDIO ENGINE
+           ========================================================================= */
+        let mekoAudio = {
+            ctx: null,
+            noiseNode: null,
+            filterNode: null,
+            gainNode: null,
+            initialized: false
+        };
+
+        function initMekoWebAudio() {
+            if (mekoAudio.initialized) {
+                if (mekoAudio.ctx && mekoAudio.ctx.state === 'suspended') mekoAudio.ctx.resume();
+                return;
+            }
+            try {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                mekoAudio.ctx = new AudioCtxClass();
+                const bufferSize = mekoAudio.ctx.sampleRate * 2;
+                const noiseBuffer = mekoAudio.ctx.createBuffer(1, bufferSize, mekoAudio.ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+
+                mekoAudio.noiseNode = mekoAudio.ctx.createBufferSource();
+                mekoAudio.noiseNode.buffer = noiseBuffer;
+                mekoAudio.noiseNode.loop = true;
+
+                mekoAudio.filterNode = mekoAudio.ctx.createBiquadFilter();
+                mekoAudio.filterNode.type = 'bandpass';
+                mekoAudio.filterNode.frequency.value = 380;
+                mekoAudio.filterNode.Q.value = 1.8;
+
+                mekoAudio.gainNode = mekoAudio.ctx.createGain();
+                mekoAudio.gainNode.gain.value = 0.05;
+
+                mekoAudio.noiseNode.connect(mekoAudio.filterNode);
+                mekoAudio.filterNode.connect(mekoAudio.gainNode);
+                mekoAudio.gainNode.connect(mekoAudio.ctx.destination);
+
+                mekoAudio.noiseNode.start(0);
+                mekoAudio.initialized = true;
+            } catch (err) {
+                console.warn("WebAudio init error:", err);
+            }
+        }
+
+        function setJetEngineModulation(speedFactor) {
+            if (!mekoAudio.gainNode || !mekoAudio.filterNode || !mekoAudio.ctx) return;
+            const now = mekoAudio.ctx.currentTime;
+            if (mekoThree.isSpeaking) {
+                mekoAudio.gainNode.gain.setTargetAtTime(0.025, now, 0.08);
+                mekoAudio.filterNode.frequency.setTargetAtTime(380, now, 0.08);
+            } else {
+                const targetGain = 0.05 + Math.min(speedFactor * 0.035, 0.22);
+                const targetFreq = 300 + Math.min(speedFactor * 180, 1600);
+                mekoAudio.gainNode.gain.setTargetAtTime(targetGain, now, 0.06);
+                mekoAudio.filterNode.frequency.setTargetAtTime(targetFreq, now, 0.06);
+            }
+        }
+
+        function playHarmonicChime(multiplier = 1) {
+            try {
+                if (!mekoAudio.ctx) initMekoWebAudio();
+                const ctx = mekoAudio.ctx;
+                if (!ctx) return;
+                const semitoneShift = Math.pow(1.05946, Math.min(10, (multiplier - 1) * 2));
+                const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51].map(f => f * semitoneShift);
+                freqs.forEach((f, idx) => {
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + idx * 0.035);
+                    g.gain.setValueAtTime(0.09, ctx.currentTime + idx * 0.035);
+                    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.035 + 0.65);
+                    osc.connect(g);
+                    g.connect(ctx.destination);
+                    osc.start(ctx.currentTime + idx * 0.035);
+                    osc.stop(ctx.currentTime + idx * 0.035 + 0.7);
+                });
+            } catch(e) {}
+        }
+
+        function playBlastOffAudio() {
+            try {
+                if (!mekoAudio.ctx) initMekoWebAudio();
+                const ctx = mekoAudio.ctx;
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                // Barrido rápido del filtro de ruido
+                if (mekoAudio.filterNode) {
+                    mekoAudio.filterNode.frequency.setValueAtTime(450, now);
+                    mekoAudio.filterNode.frequency.exponentialRampToValueAtTime(3600, now + 0.35);
+                }
+
+                // Oscilador subsónico sawtooth de 95 Hz a 40 Hz (retumbo de turbina de cohete)
+                const subOsc = ctx.createOscillator();
+                const subGain = ctx.createGain();
+                subOsc.type = 'sawtooth';
+                subOsc.frequency.setValueAtTime(95, now);
+                subOsc.frequency.exponentialRampToValueAtTime(40, now + 2.2);
+                subGain.gain.setValueAtTime(0.35, now);
+                subGain.gain.linearRampToValueAtTime(0.45, now + 0.6);
+                subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+                subOsc.connect(subGain);
+                subGain.connect(ctx.destination);
+                subOsc.start(now);
+                subOsc.stop(now + 2.4);
+
+                const sweepOsc = ctx.createOscillator();
+                const sweepGain = ctx.createGain();
+                sweepOsc.type = 'sine';
+                sweepOsc.frequency.setValueAtTime(140, now);
+                sweepOsc.frequency.exponentialRampToValueAtTime(2800, now + 2.0);
+                sweepGain.gain.setValueAtTime(0.2, now);
+                sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+                sweepOsc.connect(sweepGain);
+                sweepGain.connect(ctx.destination);
+                sweepOsc.start(now);
+                sweepOsc.stop(now + 2.2);
+
+                if (mekoAudio.gainNode) {
+                    mekoAudio.gainNode.gain.setValueAtTime(0.35, now);
+                    mekoAudio.gainNode.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+                }
+            } catch(e) {}
+        }
+
+        const distractorWordsList = [
+            "BANANA", "PENCIL", "TIGER", "MONKEY", "GUITAR", "SOCCER",
+            "BICYCLE", "DOCTOR", "ORANGE", "CHAIR", "TABLE", "ELEPHANT",
+            "CANDY", "FLOWER", "WINDOW", "KANGAROO", "PIZZA", "BURGER"
+        ];
+
+        let mekoThree = {
+            scene: null,
+            camera: null,
+            renderer: null,
+            robotGroup: null,
+            eyeGroup: null,
+            eyeMesh: null,
+            antennaLight: null,
+            leftArm: null,
+            rightArm: null,
+            leftLeg: null,
+            rightLeg: null,
+            chestLeds: [],
+            trophyMesh: null,
+            shieldBubbleMesh: null,
+            flameCones: [],
+            jetLights: [],
+            particles: null,
+            particleGeo: null,
+            particlePositions: null,
+            particleColors: null,
+            particleLifes: null,
+            particleMaxLifes: null,
+            particleVelocities: null,
+            particleIsSpark: null,
+            speedStreaks: null,
+            explosionParticles: null,
+            explosionPositions: null,
+            explosionVelocities: null,
+            explosionLifes: null,
+            shockwaveMesh: null,
+            shockwaveScale: 0,
+            starField: null,
+            planeZ: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
+            raycaster: new THREE.Raycaster(),
+            targetPos: new THREE.Vector3(0, 0, 0),
+            currentPos: new THREE.Vector3(0, 0, -38),
+            velocity: new THREE.Vector3(0, 0, 0),
+            prevPos: new THREE.Vector3(0, 0, -38),
+            clock: new THREE.Clock(),
+            fallingWords: [],
+            fallingItems: [],
+            animId: null,
+            isSpeaking: false,
+            isExploded: false,
+            isDancing: false,
+            hasShield: false,
+            blastTime: 0,
+            phase: 'approach' // 'approach', 'welcome', 'catching', 'ready_blast', 'blastoff'
+        };
+
+        let mekoState = {
+            caughtCount: 0,
+            totalItems: 16,
+            lives: 3,
+            canFlyUser: false,
+            remainingTargetWords: [],
+            currentTargetWord: "",
+            streak: 0
+        };
+
+        function resizeMekoramaRenderer() {
+            if (!mekoThree.renderer || !mekoThree.camera) return;
+            const container = document.getElementById('mekorama-canvas-container');
+            if (!container) return;
+
+            const rect = container.getBoundingClientRect();
+            const width = rect.width || window.innerWidth;
+            const height = rect.height || window.innerHeight;
+
+            mekoThree.camera.aspect = width / height;
+            mekoThree.camera.updateProjectionMatrix();
+            mekoThree.renderer.setSize(width, height, false);
+        }
+
+        function toggleMekoramaFullscreen() {
+            const container = document.getElementById('mekorama-canvas-container');
+            const icon = document.getElementById('fs-btn-icon');
+            if (!container) return;
+
+            const isCurrentlyFs = document.fullscreenElement === container || container.classList.contains('is-fullscreen-canvas');
+
+            if (!isCurrentlyFs) {
+                // Intentar Fullscreen API nativo o fallback de CSS instantáneo
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(() => {
+                        container.classList.add('is-fullscreen-canvas');
+                    });
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else {
+                    container.classList.add('is-fullscreen-canvas');
+                }
+                if (icon) icon.innerText = '✖';
+            } else {
+                if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen && document.webkitFullscreenElement) {
+                    document.webkitExitFullscreen();
+                }
+                container.classList.remove('is-fullscreen-canvas');
+                if (icon) icon.innerText = '⛶';
+            }
+
+            // Forzar actualización inmediata del tamaño en Three.js
+            setTimeout(resizeMekoramaRenderer, 80);
+            setTimeout(resizeMekoramaRenderer, 250);
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const container = document.getElementById('mekorama-canvas-container');
+            const icon = document.getElementById('fs-btn-icon');
+            if (!document.fullscreenElement && container) {
+                container.classList.remove('is-fullscreen-canvas');
+                if (icon) icon.innerText = '⛶';
+            }
+            resizeMekoramaRenderer();
+        });
+
+        function playCurrentTargetWord() {
+            if (mekoState.currentTargetWord) {
+                playWord(mekoState.currentTargetWord);
+            }
+        }
+
+        function createFootprintsBadgeTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Borde naranja Mekorama #F59E0B y ribete oscuro
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 18;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(26, 26, canvas.width - 52, canvas.height - 52);
+
+            const rivets = [[45, 45], [467, 45], [45, 467], [467, 467], [256, 45], [256, 467]];
+            rivets.forEach(([rx, ry]) => {
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.arc(rx, ry, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath();
+                ctx.arc(rx - 3, ry - 3, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            function drawFootprint(cx, cy, scale, angle) {
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 32 * scale, 56 * scale, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(0, 62 * scale, 26 * scale, 30 * scale, 0, 0, Math.PI * 2);
+                ctx.fill();
+                const toes = [
+                    [-22, -68, 9], [-11, -74, 8], [0, -78, 8], [11, -74, 7.5], [21, -68, 6.5]
+                ];
+                toes.forEach(([tx, ty, tr]) => {
+                    ctx.beginPath();
+                    ctx.arc(tx * scale, ty * scale, tr * scale, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+
+            drawFootprint(175, 210, 0.95, -0.15);
+            drawFootprint(337, 210, 0.95, 0.15);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 60px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('FOOTPRINTS', 256, 410);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        function createSoftCircleParticleTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            // Gradiente radial puro: r=0 -> RGBA(255,255,255,1.0), r=13 -> RGBA(255,255,255,0.7), r=32 -> RGBA(255,255,255,0.0)
+            const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+            grad.addColorStop(13 / 32, 'rgba(255, 255, 255, 0.7)');
+            grad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        function buildMekoramaB01Robot() {
+            const robot = new THREE.Group();
+            // Reducción del tamaño a un 60% (scale 0.40 para agilidad y campo visual amplio)
+            robot.scale.set(0.40, 0.40, 0.40);
+
+            // 1. Domo de la Cabeza: #F8FAFC (Blanco puro satinado), roughness: 0.28, metalness: 0.12
+            const headMat = new THREE.MeshStandardMaterial({ 
+                color: 0xf8fafc, 
+                roughness: 0.28, 
+                metalness: 0.12
+            });
+
+            // 2. Torso Cilíndrico: #F59E0B (Naranja Mekorama / Ámbar), roughness: 0.38, metalness: 0.18
+            const torsoMat = new THREE.MeshStandardMaterial({ 
+                color: 0xf59e0b, 
+                roughness: 0.38, 
+                metalness: 0.18
+            });
+
+            // 3. Collar y Cintura: #334155 (Acero oscuro pizarra), roughness: 0.45, metalness: 0.80
+            const collarWaistMat = new THREE.MeshStandardMaterial({ 
+                color: 0x334155, 
+                roughness: 0.45, 
+                metalness: 0.80 
+            });
+
+            // 4. Globo Ocular: #09090B (Obsidiana brillante pulido), roughness: 0.05, metalness: 0.85
+            const eyeBallMat = new THREE.MeshStandardMaterial({ 
+                color: 0x09090b, 
+                roughness: 0.05, 
+                metalness: 0.85 
+            });
+
+            // 5. Destello Pupilar: #FFFFFF (Blanco básico sin sombra)
+            const eyePupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            // 6. Brazos y Zancos: #1E293B y #334155 (Aleación industrial), roughness: 0.50, metalness: 0.70
+            const armStiltMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.50,
+                metalness: 0.70
+            });
+
+            // 7. Zapatas / Pies: #475569 (Hierro gris estructural), roughness: 0.40, metalness: 0.60
+            const feetMat = new THREE.MeshStandardMaterial({
+                color: 0x475569,
+                roughness: 0.40,
+                metalness: 0.60
+            });
+
+            // 8. Tanques del Jetpack: #64748B (Acero inoxidable satinado), roughness: 0.30, metalness: 0.85
+            const jetpackTankMat = new THREE.MeshStandardMaterial({ 
+                color: 0x64748b, 
+                roughness: 0.30, 
+                metalness: 0.85 
+            });
+
+            // 9. Toberas de Escape: Fundición refractaria #0F172A, roughness: 0.20, metalness: 0.90, doble cara
+            const nozzleMat = new THREE.MeshStandardMaterial({ 
+                color: 0x0f172a, 
+                roughness: 0.20, 
+                metalness: 0.90, 
+                side: THREE.DoubleSide 
+            });
+
+            // Abrazadera dorsal #1E293B
+            const dorsalBracketMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.60,
+                metalness: 0.60
+            });
+
+            // Cabeza
+            const headGeo = new THREE.SphereGeometry(1.3, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const headMesh = new THREE.Mesh(headGeo, headMat);
+            headMesh.position.y = 1.35;
+            robot.add(headMesh);
+
+            // Antena superior
+            const antennaGroup = new THREE.Group();
+            antennaGroup.position.set(0, 2.65, 0);
+
+            const antennaRodGeo = new THREE.CylinderGeometry(0.04, 0.05, 0.45, 12);
+            const antennaRod = new THREE.Mesh(antennaRodGeo, collarWaistMat);
+            antennaRod.position.y = 0.22;
+            antennaGroup.add(antennaRod);
+
+            const beaconGeo = new THREE.SphereGeometry(0.12, 16, 16);
+            const beaconMat = new THREE.MeshStandardMaterial({
+                color: 0xef4444,
+                emissive: 0xef4444,
+                emissiveIntensity: 0.9,
+                roughness: 0.1
+            });
+            const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+            beaconMesh.position.y = 0.48;
+            antennaGroup.add(beaconMesh);
+
+            const beaconLight = new THREE.PointLight(0xef4444, 1.2, 3);
+            beaconLight.position.set(0, 0.48, 0);
+            antennaGroup.add(beaconLight);
+            mekoThree.antennaLight = beaconLight;
+
+            robot.add(antennaGroup);
+
+            // Ojo Ciclópeo
+            const eyeGroup = new THREE.Group();
+            eyeGroup.position.set(0, 1.85, 1.05);
+
+            const socketGeo = new THREE.CylinderGeometry(0.48, 0.42, 0.25, 24);
+            socketGeo.rotateX(Math.PI / 2);
+            const socketMesh = new THREE.Mesh(socketGeo, collarWaistMat);
+            eyeGroup.add(socketMesh);
+
+            const ballGeo = new THREE.SphereGeometry(0.38, 24, 24);
+            const eyeBall = new THREE.Mesh(ballGeo, eyeBallMat);
+            eyeBall.position.z = 0.08;
+            eyeGroup.add(eyeBall);
+
+            const pupilGeo = new THREE.SphereGeometry(0.09, 16, 16);
+            const pupilMesh = new THREE.Mesh(pupilGeo, eyePupilMat);
+            pupilMesh.position.set(0.09, 0.1, 0.43);
+            eyeGroup.add(pupilMesh);
+
+            robot.add(eyeGroup);
+            mekoThree.eyeGroup = eyeGroup;
+            mekoThree.eyeMesh = eyeBall;
+
+            // Torso e Insignia
+            const neckGeo = new THREE.CylinderGeometry(1.05, 1.05, 0.25, 32);
+            const neckMesh = new THREE.Mesh(neckGeo, collarWaistMat);
+            neckMesh.position.y = 1.22;
+            robot.add(neckMesh);
+
+            const torsoGeo = new THREE.CylinderGeometry(1.22, 1.22, 1.45, 32);
+            const torsoMesh = new THREE.Mesh(torsoGeo, torsoMat);
+            torsoMesh.position.y = 0.42;
+            robot.add(torsoMesh);
+
+            const waistGeo = new THREE.CylinderGeometry(1.12, 1.12, 0.28, 32);
+            const waistMesh = new THREE.Mesh(waistGeo, collarWaistMat);
+            waistMesh.position.y = -0.42;
+            robot.add(waistMesh);
+
+            const badgeTex = createFootprintsBadgeTexture();
+            const badgeGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.72, 32, 1, true, -Math.PI * 0.35, Math.PI * 0.7);
+            const badgeMat = new THREE.MeshStandardMaterial({
+                map: badgeTex,
+                roughness: 0.22,
+                metalness: 0.15,
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -1
+            });
+            const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
+            badgeMesh.position.y = 0.48;
+            badgeMesh.rotation.y = Math.PI;
+            robot.add(badgeMesh);
+
+            // Luces LED en el Pecho
+            mekoThree.chestLeds = [];
+            const ledCount = 16;
+            const ledGeo = new THREE.SphereGeometry(0.075, 16, 16);
+            const bezelGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.04, 16);
+            bezelGeo.rotateX(Math.PI / 2);
+
+            for (let i = 0; i < ledCount; i++) {
+                const angle = -0.65 + (i / (ledCount - 1)) * 1.3;
+                const ledMat = new THREE.MeshStandardMaterial({
+                    color: 0x334155,
+                    roughness: 0.2,
+                    metalness: 0.1,
+                    emissive: 0x000000,
+                    emissiveIntensity: 0
+                });
+                const ledMesh = new THREE.Mesh(ledGeo, ledMat);
+                const radius = 1.27;
+                const posX = Math.sin(angle) * radius;
+                const posY = 0.05 + Math.sin((i / (ledCount - 1)) * Math.PI) * 0.1;
+                const posZ = Math.cos(angle) * radius;
+
+                ledMesh.position.set(posX, posY, posZ);
+                robot.add(ledMesh);
+                mekoThree.chestLeds.push(ledMesh);
+
+                const bezelMesh = new THREE.Mesh(bezelGeo, collarWaistMat);
+                bezelMesh.position.set(posX, posY, posZ - 0.02);
+                bezelMesh.rotation.y = angle;
+                robot.add(bezelMesh);
+            }
+
+            // Trofeo Dorado 3D
+            const trophyGroup = new THREE.Group();
+            trophyGroup.position.set(0, 0.35, 1.25);
+            trophyGroup.scale.set(0.01, 0.01, 0.01);
+            trophyGroup.visible = false;
+
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                metalness: 0.95,
+                roughness: 0.12,
+                emissive: 0x553300,
+                clearcoat: 0.8
+            });
+            const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.35, 0.2, 16), goldMat);
+            baseMesh.position.y = -0.35;
+            trophyGroup.add(baseMesh);
+
+            const stemMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.14, 0.32, 16), goldMat);
+            stemMesh.position.y = -0.12;
+            trophyGroup.add(stemMesh);
+
+            const cupMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.18, 0.52, 20), goldMat);
+            cupMesh.position.y = 0.26;
+            trophyGroup.add(cupMesh);
+
+            const rimMesh = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.035, 10, 24), goldMat);
+            rimMesh.rotation.x = Math.PI / 2;
+            rimMesh.position.y = 0.52;
+            trophyGroup.add(rimMesh);
+
+            const handleGeo = new THREE.TorusGeometry(0.18, 0.03, 10, 20, Math.PI * 1.1);
+            const leftHandle = new THREE.Mesh(handleGeo, goldMat);
+            leftHandle.rotation.z = -Math.PI * 0.55;
+            leftHandle.position.set(-0.38, 0.26, 0);
+            trophyGroup.add(leftHandle);
+
+            const rightHandle = new THREE.Mesh(handleGeo, goldMat);
+            rightHandle.rotation.z = Math.PI * 0.55;
+            rightHandle.position.set(0.38, 0.26, 0);
+            trophyGroup.add(rightHandle);
+
+            const starMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), new THREE.MeshBasicMaterial({ color: 0xfffbeb }));
+            starMesh.position.y = 0.35;
+            trophyGroup.add(starMesh);
+
+            robot.add(trophyGroup);
+            mekoThree.trophyMesh = trophyGroup;
+
+            // Brazos articulados
+            function createArm(isLeft) {
+                const armGroup = new THREE.Group();
+                armGroup.position.set(isLeft ? -1.35 : 1.35, 0.65, 0);
+
+                const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), collarWaistMat);
+                armGroup.add(shoulder);
+
+                const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.65, 16), torsoMat);
+                upperArm.position.set(0, -0.32, 0.15);
+                upperArm.rotation.x = Math.PI * 0.25;
+                armGroup.add(upperArm);
+
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), armStiltMat);
+                hand.position.set(0, -0.62, 0.38);
+                armGroup.add(hand);
+
+                return armGroup;
+            }
+            mekoThree.leftArm = createArm(true);
+            mekoThree.rightArm = createArm(false);
+            robot.add(mekoThree.leftArm);
+            robot.add(mekoThree.rightArm);
+
+            // Piernas zancos colgantes
+            function createLeg(isLeft) {
+                const legGroup = new THREE.Group();
+                legGroup.position.set(isLeft ? -0.48 : 0.48, -0.55, 0);
+
+                const hip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), collarWaistMat);
+                legGroup.add(hip);
+
+                const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.1, 16), armStiltMat);
+                rod.position.y = -0.55;
+                legGroup.add(rod);
+
+                const foot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.42), feetMat);
+                foot.position.set(0, -1.15, 0.06);
+                legGroup.add(foot);
+
+                return legGroup;
+            }
+            mekoThree.leftLeg = createLeg(true);
+            mekoThree.rightLeg = createLeg(false);
+            robot.add(mekoThree.leftLeg);
+            robot.add(mekoThree.rightLeg);
+
+            // 1. ESTRUCTURA MECÁNICA DEL JETPACK (ESPALDA EXACTA)
+            // Ubicación central del grupo: (0, 0.05, -0.72)
+            const jetpackGroup = new THREE.Group();
+            jetpackGroup.position.set(0, 0.05, -0.72);
+
+            // Abrazadera de montaje dorsal: BoxGeometry(0.85, 0.18, 0.12) en (0, 0.05, 0.05)
+            const dorsalBracket = new THREE.Mesh(
+                new THREE.BoxGeometry(0.85, 0.18, 0.12),
+                dorsalBracketMat
+            );
+            dorsalBracket.position.set(0, 0.05, 0.05);
+            jetpackGroup.add(dorsalBracket);
+
+            // Tanques Gemelos: CylinderGeometry(radiusTop: 0.24, radiusBottom: 0.24, height: 0.85, radialSegments: 24)
+            const tankGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.85, 24);
+            const leftTank = new THREE.Mesh(tankGeo, jetpackTankMat);
+            leftTank.position.set(-0.32, 0.05, 0);
+            jetpackGroup.add(leftTank);
+
+            const rightTank = new THREE.Mesh(tankGeo, jetpackTankMat);
+            rightTank.position.set(0.32, 0.05, 0);
+            jetpackGroup.add(rightTank);
+
+            // Cúpulas / Tapas Superiores: SphereGeometry(0.24, 20, 16, 0, 2*PI, 0, PI/2) en y = 0.47
+            const domeGeo = new THREE.SphereGeometry(0.24, 20, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const leftDome = new THREE.Mesh(domeGeo, jetpackTankMat);
+            leftDome.position.set(-0.32, 0.47, 0);
+            jetpackGroup.add(leftDome);
+
+            const rightDome = new THREE.Mesh(domeGeo, jetpackTankMat);
+            rightDome.position.set(0.32, 0.47, 0);
+            jetpackGroup.add(rightDome);
+
+            // Toberas de Escape (Nozzles): CylinderGeometry(0.18, 0.28, 0.32, 20, 1, true) en y = -0.48
+            const nozzleGeo = new THREE.CylinderGeometry(0.18, 0.28, 0.32, 20, 1, true);
+            const leftNozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+            leftNozzle.position.set(-0.32, -0.48, 0);
+            jetpackGroup.add(leftNozzle);
+
+            const rightNozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+            rightNozzle.position.set(0.32, -0.48, 0);
+            jetpackGroup.add(rightNozzle);
+
+            // 3. GEOMETRÍA Y DINÁMICA DE LOS CONOS DE FUEGO
+            // Cono invertido ConeGeometry(radius: 0.22, height: 0.75, radialSegments: 20) invertido en X
+            const flameGeo = new THREE.ConeGeometry(0.22, 0.75, 20);
+            flameGeo.rotateX(Math.PI);
+            const flameMat = new THREE.MeshBasicMaterial({ 
+                color: 0xffaa00, 
+                transparent: true, 
+                opacity: 0.90,
+                blending: THREE.AdditiveBlending 
+            });
+
+            const leftFlame = new THREE.Mesh(flameGeo, flameMat);
+            leftFlame.position.set(-0.32, -0.92, 0);
+            jetpackGroup.add(leftFlame);
+
+            const rightFlame = new THREE.Mesh(flameGeo, flameMat.clone());
+            rightFlame.position.set(0.32, -0.92, 0);
+            jetpackGroup.add(rightFlame);
+
+            mekoThree.flameCones = [leftFlame, rightFlame];
+
+            // 4. ILUMINACIÓN DINÁMICA DE PROPULSIÓN (THRUSTER LIGHTS)
+            // Luz izquierda: (-0.32, -1.0, 0), Color: #FF7700
+            // Luz derecha: (+0.32, -1.0, 0), Color: #FF9900, Distancia: 5.0
+            const light1 = new THREE.PointLight(0xff7700, 2.0, 5.0);
+            light1.position.set(-0.32, -1.0, 0);
+            jetpackGroup.add(light1);
+
+            const light2 = new THREE.PointLight(0xff9900, 2.0, 5.0);
+            light2.position.set(0.32, -1.0, 0);
+            jetpackGroup.add(light2);
+
+            mekoThree.jetLights = [light1, light2];
+            robot.add(jetpackGroup);
+
+            // Escudo Protector de Energía Cósmica (Burbuja translúcida)
+            const shieldGeo = new THREE.SphereGeometry(2.1, 24, 24);
+            const shieldMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                emissive: 0x0284c7,
+                emissiveIntensity: 0.6,
+                transparent: true,
+                opacity: 0,
+                roughness: 0.1,
+                metalness: 0.2,
+                wireframe: true
+            });
+            const shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            shieldMesh.position.y = 0.6;
+            robot.add(shieldMesh);
+            mekoThree.shieldBubbleMesh = shieldMesh;
+
+            // 5. SISTEMA DE PARTÍCULAS: ESTELA CONTINUA DE FUEGO Y HUMO (130 partículas)
+            const particleCount = 130;
+            const posArray = new Float32Array(particleCount * 3);
+            const colorArray = new Float32Array(particleCount * 3);
+            const lifeArray = new Float32Array(particleCount);
+            const maxLifeArray = new Float32Array(particleCount);
+            const velArray = new Float32Array(particleCount * 3);
+            const isSparkArray = new Uint8Array(particleCount);
+
+            for (let i = 0; i < particleCount; i++) {
+                posArray[i * 3 + 1] = -100;
+                colorArray[i * 3] = 1.0;
+                colorArray[i * 3 + 1] = 0.67;
+                colorArray[i * 3 + 2] = 0.0;
+                lifeArray[i] = 0.0;
+                maxLifeArray[i] = 1.0;
+            }
+
+            const pGeo = new THREE.BufferGeometry();
+            pGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            pGeo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+            const particleTex = createSoftCircleParticleTexture();
+            const pMat = new THREE.PointsMaterial({
+                size: 0.45,
+                map: particleTex,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.80,
+                blending: THREE.NormalBlending,
+                depthWrite: false
+            });
+
+            mekoThree.particles = new THREE.Points(pGeo, pMat);
+            mekoThree.particleGeo = pGeo;
+            mekoThree.particlePositions = posArray;
+            mekoThree.particleColors = colorArray;
+            mekoThree.particleLifes = lifeArray;
+            mekoThree.particleMaxLifes = maxLifeArray;
+            mekoThree.particleVelocities = velArray;
+            mekoThree.particleIsSpark = isSparkArray;
+
+            // Partículas de explosión
+            const expCount = 140;
+            const expPos = new Float32Array(expCount * 3);
+            const expVel = new Float32Array(expCount * 3);
+            const expLifes = new Float32Array(expCount);
+
+            for (let i = 0; i < expCount; i++) {
+                expPos[i * 3 + 1] = -100;
+                expLifes[i] = 0;
+            }
+
+            const expGeo = new THREE.BufferGeometry();
+            expGeo.setAttribute('position', new THREE.BufferAttribute(expPos, 3));
+
+            const expMat = new THREE.PointsMaterial({
+                size: 0.85,
+                color: 0xef4444,
+                transparent: true,
+                opacity: 0.95,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            mekoThree.explosionParticles = new THREE.Points(expGeo, expMat);
+            mekoThree.explosionPositions = expPos;
+            mekoThree.explosionVelocities = expVel;
+            mekoThree.explosionLifes = expLifes;
+
+            return robot;
+        }
+
+        function createWordBadgeMesh(text, isCorrect) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 160;
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Gradiente cósmico índigo profundo
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, 'rgba(79, 70, 229, 0.96)');
+            bgGrad.addColorStop(0.5, 'rgba(67, 56, 202, 0.94)');
+            bgGrad.addColorStop(1, 'rgba(49, 46, 129, 0.96)');
+            ctx.fillStyle = bgGrad;
+
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(14, 14, canvas.width - 28, canvas.height - 28, 48);
+            } else {
+                ctx.rect(14, 14, canvas.width - 28, canvas.height - 28);
+            }
+            ctx.fill();
+
+            // Reflejo superior de cristal
+            const shineGrad = ctx.createLinearGradient(0, 16, 0, 80);
+            shineGrad.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+            shineGrad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+            ctx.fillStyle = shineGrad;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(18, 18, canvas.width - 36, 60, [40, 40, 0, 0]);
+            }
+            ctx.fill();
+
+            // Borde resplandeciente
+            ctx.strokeStyle = '#c7d2fe';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // Texto de la palabra en negrita
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetY = 3;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 58px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+            ctx.shadowColor = 'transparent';
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+            const geometry = new THREE.PlaneGeometry(2.5, 0.78);
+            const mesh = new THREE.Mesh(geometry, material);
+
+            mesh.position.set((Math.random() - 0.5) * 6.5, 5.5 + Math.random() * 2.0, 0);
+            mesh.userData = {
+                text: text,
+                isCorrect: isCorrect,
+                speed: 0.022 + Math.random() * 0.012,
+                wobblePhase: Math.random() * Math.PI * 2
+            };
+
+            return mesh;
+        }
+
+        function updateChestLeds(count) {
+            if (!mekoThree.chestLeds || mekoThree.chestLeds.length === 0) return;
+            const colors = [
+                0xef4444, 0xf97316, 0xf59e0b, 0xeab308,
+                0x84cc16, 0x22c55e, 0x10b981, 0x14b8a6,
+                0x06b6d4, 0x0ea5e9, 0x3b82f6, 0x6366f1,
+                0x8b5cf6, 0xa855f7, 0xd946ef, 0xf43f5e
+            ];
+            mekoThree.chestLeds.forEach((led, i) => {
+                if (i < count) {
+                    const col = colors[i % colors.length];
+                    led.material.color.setHex(col);
+                    led.material.emissive.setHex(col);
+                    led.material.emissiveIntensity = 1.8;
+                    led.scale.set(1.45, 1.45, 1.45);
+                } else {
+                    led.material.color.setHex(0x334155);
+                    led.material.emissive.setHex(0x000000);
+                    led.material.emissiveIntensity = 0;
+                    led.scale.set(1.0, 1.0, 1.0);
+                }
+            });
+        }
+
+        function initMekorama3DExperience() {
+            initMekoWebAudio();
+            const container = document.getElementById('mekorama-canvas-container');
+            const canvas = document.getElementById('three-mekorama-canvas');
+            if (!container || !canvas) return;
+
+            // Reinicio de variables
+            mekoState.caughtCount = 0;
+            mekoState.lives = 3;
+            mekoState.streak = 0;
+            mekoState.canFlyUser = false;
+            mekoThree.isExploded = false;
+            mekoThree.isDancing = false;
+            mekoThree.hasShield = false;
+            updateChestLeds(0);
+            if (mekoThree.trophyMesh) {
+                mekoThree.trophyMesh.visible = false;
+                mekoThree.trophyMesh.scale.set(0.01, 0.01, 0.01);
+            }
+            if (mekoThree.shieldBubbleMesh) {
+                mekoThree.shieldBubbleMesh.material.opacity = 0;
+            }
+
+            const comboBadge = document.getElementById('meko-combo-badge');
+            if (comboBadge) comboBadge.classList.add('hidden');
+            const shieldBadge = document.getElementById('meko-shield-badge');
+            if (shieldBadge) shieldBadge.classList.add('hidden');
+
+            const targets = originalVocabulary.slice(0, 16).map(v => v.word);
+            mekoState.remainingTargetWords = [...targets].sort(() => Math.random() - 0.5);
+            mekoState.currentTargetWord = mekoState.remainingTargetWords[0] || "";
+
+            document.getElementById('meko-score').innerText = `0 / ${mekoState.totalItems}`;
+            document.getElementById('meko-lives').innerText = '❤️❤️❤️';
+            document.getElementById('meko-banner').classList.remove('hidden');
+            document.getElementById('meko-exit-panel').classList.add('hidden');
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            if (!mekoThree.scene) {
+                mekoThree.scene = new THREE.Scene();
+                // 1. Entorno Atmosférico: scene.background y THREE.FogExp2(#BFE3F7, 0.05)
+                mekoThree.scene.background = new THREE.Color(0xbfe3f7);
+                mekoThree.scene.fog = new THREE.FogExp2(0xbfe3f7, 0.05);
+
+                mekoThree.camera = new THREE.PerspectiveCamera(46, width / height, 0.1, 100);
+                mekoThree.camera.position.set(0, 0.8, 8.8);
+
+                mekoThree.renderer = new THREE.WebGLRenderer({ 
+                    canvas: canvas, 
+                    antialias: true, 
+                    alpha: false,
+                    powerPreference: "high-performance"
+                });
+                mekoThree.renderer.setSize(width, height);
+                mekoThree.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                mekoThree.renderer.outputEncoding = THREE.sRGBEncoding;
+                mekoThree.renderer.shadowMap.enabled = true;
+                mekoThree.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // 2. Esquema de Iluminación Diorama (Soft Studio Lighting)
+                const hemiLight = new THREE.HemisphereLight(0xffffff, 0x475569, 0.95);
+                mekoThree.scene.add(hemiLight);
+
+                const sunKeyLight = new THREE.DirectionalLight(0xfff7ed, 1.15);
+                sunKeyLight.position.set(5, 8, 6);
+                sunKeyLight.castShadow = true;
+                sunKeyLight.shadow.mapSize.width = 512;
+                sunKeyLight.shadow.mapSize.height = 512;
+                mekoThree.scene.add(sunKeyLight);
+
+                const rimLight = new THREE.DirectionalLight(0x7dd3fc, 0.45);
+                rimLight.position.set(-5, -2, 4);
+                mekoThree.scene.add(rimLight);
+
+                // Anillo de onda expansiva al atrapar palabras
+                const shockRingGeo = new THREE.RingGeometry(0.2, 0.35, 32);
+                const shockRingMat = new THREE.MeshBasicMaterial({
+                    color: 0x0284c7,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0
+                });
+                mekoThree.shockwaveMesh = new THREE.Mesh(shockRingGeo, shockRingMat);
+                mekoThree.shockwaveMesh.position.set(0, -100, 0);
+                mekoThree.scene.add(mekoThree.shockwaveMesh);
+
+                mekoThree.robotGroup = buildMekoramaB01Robot();
+                mekoThree.scene.add(mekoThree.robotGroup);
+                mekoThree.scene.add(mekoThree.particles);
+                mekoThree.scene.add(mekoThree.explosionParticles);
+
+                setupMekoramaInputListeners(container);
+            } else {
+                resizeMekoramaRenderer();
+            }
+
+            // Entrada volando desde z = -38
+            mekoThree.currentPos.set(0, -0.5, -38);
+            mekoThree.targetPos.set(0, 0, 0);
+            mekoThree.prevPos.copy(mekoThree.currentPos);
+            mekoThree.robotGroup.position.copy(mekoThree.currentPos);
+            mekoThree.robotGroup.rotation.set(0, 0, 0);
+            mekoThree.robotGroup.visible = true;
+            mekoThree.phase = 'approach';
+
+            // Limpiar palabras e items activos
+            mekoThree.fallingWords.forEach(w => mekoThree.scene.remove(w));
+            mekoThree.fallingWords = [];
+            mekoThree.fallingItems.forEach(item => mekoThree.scene.remove(item));
+            mekoThree.fallingItems = [];
+
+            if (mekoThree.animId) cancelAnimationFrame(mekoThree.animId);
+            mekoThree.clock.start();
+            mekoThree.animId = requestAnimationFrame(mekoramaLoop);
+        }
+
+        function setupMekoramaInputListeners(container) {
+            function updateRaycast(clientX, clientY) {
+                if (!mekoState.canFlyUser || !mekoThree.camera || mekoThree.isExploded) return;
+                const rect = container.getBoundingClientRect();
+                const mouse = new THREE.Vector2(
+                    ((clientX - rect.left) / rect.width) * 2 - 1,
+                    -((clientY - rect.top) / rect.height) * 2 + 1
+                );
+                mekoThree.raycaster.setFromCamera(mouse, mekoThree.camera);
+                const intersectPoint = new THREE.Vector3();
+                mekoThree.raycaster.ray.intersectPlane(mekoThree.planeZ, intersectPoint);
+                if (intersectPoint) {
+                    // Cálculo dinámico de límites según el ratio de pantalla para alcanzar los bordes exactos
+                    const vHalfHeight = Math.tan(THREE.MathUtils.degToRad(mekoThree.camera.fov / 2)) * mekoThree.camera.position.z;
+                    const vHalfWidth = vHalfHeight * mekoThree.camera.aspect;
+                    
+                    // Permite viajar a los bordes laterales completos sin desbordar la pantalla visible
+                    const limitX = Math.max(3.2, vHalfWidth - 0.75);
+                    const limitY = Math.max(2.1, vHalfHeight - 1.15);
+
+                    intersectPoint.x = Math.max(-limitX, Math.min(limitX, intersectPoint.x));
+                    intersectPoint.y = Math.max(-limitY, Math.min(limitY, intersectPoint.y));
+                    mekoThree.targetPos.copy(intersectPoint);
+                }
+            }
+
+            container.addEventListener('mousemove', (e) => {
+                initMekoWebAudio();
+                updateRaycast(e.clientX, e.clientY);
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                initMekoWebAudio();
+                if (e.touches && e.touches[0]) updateRaycast(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+
+            container.addEventListener('touchstart', (e) => {
+                initMekoWebAudio();
+                if (e.touches && e.touches[0]) updateRaycast(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+        }
+
+        function triggerWelcomeSpeech() {
+            mekoThree.phase = 'welcome';
+
+            const message = "Hello pilot! Help me catch our 16 unit words falling from the sky. Be careful: catching wrong words will make me explode! Let's go!";
+
+            speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(message);
+            utter.lang = 'en-US';
+            utter.rate = 0.95;
+
+            utter.onstart = () => { mekoThree.isSpeaking = true; };
+            utter.onend = () => {
+                mekoThree.isSpeaking = false;
+                if (mekoThree.eyeMesh) mekoThree.eyeMesh.scale.set(1, 1, 1);
+                setTimeout(startWordCatchPhase, 600);
+            };
+            speechSynthesis.speak(utter);
+        }
+
+        function startWordCatchPhase() {
+            mekoThree.phase = 'catching';
+            mekoState.canFlyUser = true;
+            announceAndSpawnTargetWord();
+        }
+
+        function announceAndSpawnTargetWord() {
+            if (mekoState.remainingTargetWords.length === 0) {
+                showMekoramaExitButton();
+                return;
+            }
+
+            mekoState.currentTargetWord = mekoState.remainingTargetWords[0];
+
+            setTimeout(() => {
+                playCurrentTargetWord();
+            }, 300);
+
+            spawnFallingWords();
+            spawnBonusShieldPowerup();
+        }
+
+        function createShieldOrbMesh() {
+            const group = new THREE.Group();
+            const coreGeo = new THREE.DodecahedronGeometry(0.35, 1);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                emissive: 0x0284c7,
+                emissiveIntensity: 0.9,
+                metalness: 0.8,
+                roughness: 0.1
+            });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            group.add(core);
+
+            const ringGeo = new THREE.TorusGeometry(0.5, 0.04, 8, 20);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xbae6fd });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 3;
+            group.add(ring);
+
+            group.position.set((Math.random() - 0.5) * 6, 6 + Math.random(), 0);
+            group.userData = {
+                type: 'shield',
+                speed: 0.02 + Math.random() * 0.008
+            };
+            return group;
+        }
+
+        function spawnFallingWords() {
+            if (mekoThree.fallingWords.length > 0) return;
+            if (!mekoState.currentTargetWord) return;
+
+            const wordsToSpawn = [{ text: mekoState.currentTargetWord, isCorrect: true }];
+            const pool = [...distractorWordsList].filter(w => w !== mekoState.currentTargetWord).sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < 2 && i < pool.length; i++) {
+                wordsToSpawn.push({ text: pool[i], isCorrect: false });
+            }
+
+            wordsToSpawn.sort(() => Math.random() - 0.5);
+            const xPositions = [-2.5, 0, 2.5].sort(() => Math.random() - 0.5);
+
+            wordsToSpawn.forEach((wObj, idx) => {
+                const mesh = createWordBadgeMesh(wObj.text, wObj.isCorrect);
+                mesh.position.x = (xPositions[idx] !== undefined ? xPositions[idx] : 0) + (Math.random() - 0.5) * 0.4;
+                mesh.position.y = 5.6 + Math.random() * 1.2 + (idx * 0.5);
+                mekoThree.scene.add(mesh);
+                mekoThree.fallingWords.push(mesh);
+            });
+        }
+
+        function spawnBonusShieldPowerup() {
+            // Un 20% de probabilidad de que aparezca una cápsula de escudo cósmico
+            if (mekoThree.fallingItems.length === 0 && Math.random() < 0.25 && !mekoThree.hasShield) {
+                const orb = createShieldOrbMesh();
+                mekoThree.scene.add(orb);
+                mekoThree.fallingItems.push(orb);
+            }
+        }
+
+        function triggerRobotExplosion() {
+            // Si el robot tiene activo el escudo protector cósmico, absorbe el impacto
+            if (mekoThree.hasShield) {
+                mekoThree.hasShield = false;
+                const shieldBadge = document.getElementById('meko-shield-badge');
+                if (shieldBadge) shieldBadge.classList.add('hidden');
+                if (mekoThree.shieldBubbleMesh) mekoThree.shieldBubbleMesh.material.opacity = 0;
+
+                triggerHaptic('combo');
+                playHarmonicChime(1);
+                showFloatingFeedback();
+                updateSpeech("Shield protected you!");
+                return;
+            }
+
+            mekoThree.isExploded = true;
+            mekoThree.robotGroup.visible = false;
+            mekoState.streak = 0;
+
+            const comboBadge = document.getElementById('meko-combo-badge');
+            if (comboBadge) comboBadge.classList.add('hidden');
+
+            playUFOCrashSound();
+            document.body.classList.add('animate-shake');
+            setTimeout(() => document.body.classList.remove('animate-shake'), 700);
+
+            const rPos = mekoThree.robotGroup.position;
+            const pos = mekoThree.explosionPositions;
+            const vel = mekoThree.explosionVelocities;
+            const lifes = mekoThree.explosionLifes;
+            const count = lifes.length;
+
+            for (let i = 0; i < count; i++) {
+                pos[i * 3] = rPos.x + (Math.random() - 0.5) * 0.4;
+                pos[i * 3 + 1] = rPos.y + (Math.random() - 0.5) * 0.4;
+                pos[i * 3 + 2] = rPos.z + (Math.random() - 0.5) * 0.4;
+
+                const speed = 0.16 + Math.random() * 0.38;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = (Math.random() - 0.5) * Math.PI;
+
+                vel[i * 3] = Math.cos(theta) * Math.cos(phi) * speed;
+                vel[i * 3 + 1] = Math.sin(phi) * speed;
+                vel[i * 3 + 2] = Math.sin(theta) * Math.cos(phi) * speed;
+
+                lifes[i] = 1.0;
+            }
+            mekoThree.explosionParticles.geometry.attributes.position.needsUpdate = true;
+
+            mekoState.lives--;
+            const hearts = "❤️".repeat(Math.max(0, mekoState.lives)) + "🖤".repeat(Math.max(0, 3 - mekoState.lives));
+            document.getElementById('meko-lives').innerText = hearts;
+
+            if (mekoState.lives <= 0) {
+                updateSpeech("Watch out! Try again!");
+                mekoState.lives = 3;
+                setTimeout(() => {
+                    document.getElementById('meko-lives').innerText = '❤️❤️❤️';
+                }, 1500);
+            }
+
+            mekoThree.fallingWords.forEach(w => mekoThree.scene.remove(w));
+            mekoThree.fallingWords = [];
+
+            setTimeout(() => {
+                mekoThree.robotGroup.visible = true;
+                mekoThree.currentPos.set(0, 0, 0);
+                mekoThree.targetPos.set(0, 0, 0);
+                mekoThree.isExploded = false;
+                playCurrentTargetWord();
+                spawnFallingWords();
+            }, 1400);
+        }
+
+        function showMekoramaExitButton() {
+            mekoThree.phase = 'ready_blast';
+            mekoThree.isDancing = true;
+            mekoState.canFlyUser = false;
+            mekoThree.targetPos.set(0, 0, 0);
+
+            if (mekoThree.trophyMesh) {
+                mekoThree.trophyMesh.visible = true;
+            }
+
+            document.getElementById('meko-banner').classList.add('hidden');
+            document.getElementById('meko-exit-panel').classList.remove('hidden');
+
+            confetti({ particleCount: 160, spread: 100, origin: { y: 0.5 } });
+            triggerHaptic('combo');
+            updateSpeech("Woohoo! Look at B-01 dance with the golden trophy! You caught all 16 words!");
+        }
+
+        function executeBlastOffSequence() {
+            document.getElementById('meko-exit-panel').classList.add('hidden');
+
+            playBlastOffAudio();
+            triggerHaptic('combo');
+
+            mekoThree.phase = 'blastoff';
+            mekoThree.blastTime = 0;
+            mekoState.canFlyUser = false;
+        }
+
+        function mekoramaLoop() {
+            if (state.currentSection !== 'catcher') return;
+
+            const delta = mekoThree.clock.getDelta();
+            const elapsed = mekoThree.clock.getElapsedTime();
+
+            // Luz pulsante de la antena
+            if (mekoThree.antennaLight) {
+                mekoThree.antennaLight.intensity = 1.0 + Math.sin(elapsed * 8.0) * 0.6;
+            }
+
+            // Animación de la onda expansiva
+            if (mekoThree.shockwaveMesh && mekoThree.shockwaveScale > 0) {
+                mekoThree.shockwaveScale += 0.08;
+                mekoThree.shockwaveMesh.scale.set(mekoThree.shockwaveScale, mekoThree.shockwaveScale, mekoThree.shockwaveScale);
+                mekoThree.shockwaveMesh.material.opacity = Math.max(0, 1.0 - (mekoThree.shockwaveScale / 3.0));
+                if (mekoThree.shockwaveScale > 3.0) {
+                    mekoThree.shockwaveScale = 0;
+                    mekoThree.shockwaveMesh.material.opacity = 0;
+                    mekoThree.shockwaveMesh.position.y = -100;
+                }
+            }
+
+            // Cálculo de Físicas Fluidas, Inercia y Ladeo (Banking)
+            let speed = 0;
+            const effectiveDt = Math.max(delta, 0.016);
+
+            if (mekoThree.phase === 'approach') {
+                mekoThree.currentPos.z += (0 - mekoThree.currentPos.z) * 0.10;
+                setJetEngineModulation(1.0);
+                if (Math.abs(mekoThree.currentPos.z) < 0.25) {
+                    mekoThree.currentPos.z = 0;
+                    triggerWelcomeSpeech();
+                }
+            } else if (mekoThree.phase === 'blastoff') {
+                // 6. COMPORTAMIENTO CINEMÁTICO: DESPEGUE FINAL (BLAST-OFF EXACTO)
+                mekoThree.blastTime += effectiveDt;
+                const aBlast = 20.0 + (mekoThree.blastTime * 42.0);
+                mekoThree.currentPos.y += aBlast * effectiveDt;
+                mekoThree.currentPos.z -= 0.85 * aBlast * effectiveDt;
+                mekoThree.currentPos.x += (Math.random() - 0.5) * 0.09; // Engine shudder
+
+                // Pitch de ascenso
+                mekoThree.robotGroup.rotation.x += (-0.68 - mekoThree.robotGroup.rotation.x) * 0.18;
+
+                // Escala de llamas gigantes
+                const giantScaleY = 3.8 + Math.random() * 1.6;
+                mekoThree.flameCones.forEach(f => {
+                    f.scale.set(1.6, giantScaleY, 1.6);
+                });
+
+                // Resplandor de ignición PointLight a 7.5 unidades
+                mekoThree.jetLights.forEach(l => {
+                    l.intensity = 7.5;
+                });
+
+                if (mekoThree.currentPos.y > 22) {
+                    showSection('map');
+                    updateSpeech("Great adventure! Welcome back to the map!");
+                    return;
+                }
+            } else if (mekoThree.isDancing) {
+                const danceBob = Math.sin(elapsed * 7.5) * 0.25;
+                mekoThree.currentPos.x += (0 - mekoThree.currentPos.x) * 0.08;
+                mekoThree.currentPos.y += (danceBob - mekoThree.currentPos.y) * 0.15;
+
+                mekoThree.robotGroup.rotation.y = Math.sin(elapsed * 4.5) * 0.35;
+                mekoThree.robotGroup.rotation.z = Math.cos(elapsed * 4.5) * 0.18;
+                mekoThree.robotGroup.rotation.x = Math.sin(elapsed * 6.0) * 0.12;
+
+                if (mekoThree.leftArm && mekoThree.rightArm) {
+                    mekoThree.leftArm.rotation.x = -Math.PI * 0.45 + Math.sin(elapsed * 7.5) * 0.15;
+                    mekoThree.leftArm.rotation.z = Math.PI * 0.25;
+                    mekoThree.rightArm.rotation.x = -Math.PI * 0.45 - Math.sin(elapsed * 7.5) * 0.15;
+                    mekoThree.rightArm.rotation.z = -Math.PI * 0.25;
+                }
+
+                if (mekoThree.leftLeg && mekoThree.rightLeg) {
+                    mekoThree.leftLeg.rotation.x = Math.sin(elapsed * 7.5) * 0.35;
+                    mekoThree.rightLeg.rotation.x = -Math.sin(elapsed * 7.5) * 0.35;
+                }
+
+                if (mekoThree.trophyMesh && mekoThree.trophyMesh.scale.x < 0.85) {
+                    const currentScale = mekoThree.trophyMesh.scale.x;
+                    const nextScale = currentScale + (0.85 - currentScale) * 0.1;
+                    mekoThree.trophyMesh.scale.set(nextScale, nextScale, nextScale);
+                }
+
+                if (mekoThree.chestLeds) {
+                    const danceHueOffset = elapsed * 180;
+                    mekoThree.chestLeds.forEach((led, idx) => {
+                        const hue = (danceHueOffset + idx * 22) % 360;
+                        led.material.color.setHSL(hue / 360, 0.95, 0.55);
+                        led.material.emissive.setHSL(hue / 360, 0.95, 0.55);
+                        led.material.emissiveIntensity = 1.8;
+                    });
+                }
+            } else if (!mekoThree.isExploded) {
+                // Interpolación Amortiguada (Dampened Lerp)
+                const dampFactor = 0.085 + Math.min(delta, 0.05);
+                mekoThree.currentPos.x += (mekoThree.targetPos.x - mekoThree.currentPos.x) * dampFactor;
+                mekoThree.currentPos.y += (mekoThree.targetPos.y - mekoThree.currentPos.y) * dampFactor;
+                mekoThree.currentPos.z += (0 - mekoThree.currentPos.z) * 0.10;
+            }
+
+            // Cálculo de Velocidad Vectorial y Speed
+            const vx = (mekoThree.currentPos.x - mekoThree.prevPos.x) / effectiveDt;
+            const vy = (mekoThree.currentPos.y - mekoThree.prevPos.y) / effectiveDt;
+            mekoThree.velocity.set(vx, vy, 0);
+            mekoThree.prevPos.copy(mekoThree.currentPos);
+            speed = Math.sqrt(vx * vx + vy * vy);
+
+            // Modulación del audio de la turbina
+            setJetEngineModulation(speed);
+
+            // Oscilación Suspendida (Hover Wobble)
+            const hoverY = mekoThree.isDancing ? 0 : Math.sin(elapsed * 3.5) * 0.08;
+            mekoThree.robotGroup.position.set(
+                mekoThree.currentPos.x,
+                mekoThree.currentPos.y + hoverY,
+                mekoThree.currentPos.z
+            );
+
+            if (!mekoThree.isDancing && mekoThree.phase !== 'blastoff') {
+                // Cinemática de Ladeo Orgánico (Banking & Tilt):
+                const targetRoll = -vx * 0.09 + Math.cos(elapsed * 2.8) * 0.03;
+                mekoThree.robotGroup.rotation.z += (targetRoll - mekoThree.robotGroup.rotation.z) * 0.10;
+
+                const targetPitch = vy * 0.07 - 0.15;
+                mekoThree.robotGroup.rotation.x += (targetPitch - mekoThree.robotGroup.rotation.x) * 0.10;
+
+                const targetYaw = vx * 0.04;
+                mekoThree.robotGroup.rotation.y += (targetYaw - mekoThree.robotGroup.rotation.y) * 0.10;
+
+                // Péndulo Inercial de las Piernas (Stilts Sway)
+                if (mekoThree.leftLeg && mekoThree.rightLeg) {
+                    const lagY = Math.max(-0.30, Math.min(0.40, -vy * 0.08));
+                    const swaySine = Math.sin(elapsed * 4.0) * 0.08;
+                    const rotZLeg = -vx * 0.05;
+
+                    mekoThree.leftLeg.rotation.x = lagY + swaySine;
+                    mekoThree.leftLeg.rotation.z = rotZLeg;
+
+                    mekoThree.rightLeg.rotation.x = lagY - swaySine;
+                    mekoThree.rightLeg.rotation.z = rotZLeg;
+                }
+            }
+
+            // Guiño del ojo
+            if (mekoThree.eyeMesh) {
+                if (mekoThree.isSpeaking) {
+                    const blinkScaleY = 0.3 + Math.abs(Math.sin(elapsed * 16.0)) * 0.7;
+                    mekoThree.eyeMesh.scale.y = blinkScaleY;
+                } else {
+                    mekoThree.eyeMesh.scale.y = 1.0;
+                }
+            }
+
+            // 3.B Fórmula de Modulación y Jitter de Conos de Fuego en Tiempo Real
+            if (mekoThree.phase !== 'blastoff') {
+                const flameJitter = 1.0 + (Math.random() * 0.35) + (speed * 0.18);
+                const flameScaleY = Math.max(0.80, Math.min(2.60, flameJitter));
+                const flameScaleXZ = 1.0 + (Math.random() * 0.15);
+                mekoThree.flameCones.forEach(f => {
+                    f.scale.set(flameScaleXZ, flameScaleY, flameScaleXZ);
+                });
+
+                // 4. Iluminación Dinámica de Propulsión (Thruster Lights)
+                // Intensidad = 2.0 + random(0, 1.5) + (Speed * 0.40)
+                const lightPower = 2.0 + (Math.random() * 1.5) + (speed * 0.40);
+                mekoThree.jetLights.forEach(l => {
+                    l.intensity = lightPower;
+                });
+            }
+
+            updateMekoramaParticles(speed, delta);
+            updateExplosionParticles();
+            updateFallingWords(elapsed);
+
+            // Resorte suave de cámara tras impactos
+            if (mekoThree.camera.position.z < 8.8) {
+                mekoThree.camera.position.z += (8.8 - mekoThree.camera.position.z) * 0.12;
+            }
+
+            mekoThree.renderer.render(mekoThree.scene, mekoThree.camera);
+            mekoThree.animId = requestAnimationFrame(mekoramaLoop);
+        }
+
+        function updateMekoramaParticles(speed, delta) {
+            if (!mekoThree.particles || !mekoThree.robotGroup) return;
+            const pos = mekoThree.particlePositions;
+            const cols = mekoThree.particleColors;
+            const lifes = mekoThree.particleLifes;
+            const maxLifes = mekoThree.particleMaxLifes;
+            const vels = mekoThree.particleVelocities;
+            const isSpark = mekoThree.particleIsSpark;
+            const count = lifes.length;
+
+            // Puntos de inyección en coordenadas de mundo de las toberas
+            // P_nozzle_L = (-0.32, -0.92, -0.72) * M_world; P_nozzle_R = (0.32, -0.92, -0.72) * M_world
+            mekoThree.robotGroup.updateMatrixWorld();
+            const worldMatrix = mekoThree.robotGroup.matrixWorld;
+
+            const nozzleLeftWorld = new THREE.Vector3(-0.32, -0.92, -0.72).applyMatrix4(worldMatrix);
+            const nozzleRightWorld = new THREE.Vector3(0.32, -0.92, -0.72).applyMatrix4(worldMatrix);
+
+            // Tasa de emisión por fotograma: floor(2 + Speed * 1.5)
+            const spawnRate = mekoThree.phase === 'blastoff' ? 14 : Math.floor(2 + (speed * 1.5));
+
+            if (mekoThree.robotGroup.visible) {
+                for (let s = 0; s < spawnRate; s++) {
+                    const pIdx = Math.floor(Math.random() * count);
+                    const targetNozzle = Math.random() > 0.5 ? nozzleLeftWorld : nozzleRightWorld;
+
+                    // Dispersión cónica inicial: rand(-0.075, 0.075)
+                    pos[pIdx * 3] = targetNozzle.x + (Math.random() - 0.5) * 0.15;
+                    pos[pIdx * 3 + 1] = targetNozzle.y;
+                    pos[pIdx * 3 + 2] = targetNozzle.z + (Math.random() - 0.5) * 0.15;
+
+                    // Vida individual: t_max = 0.50 + random(0, 0.60) s
+                    const tMax = 0.50 + Math.random() * 0.60;
+                    lifes[pIdx] = tMax;
+                    maxLifes[pIdx] = tMax;
+
+                    // Velocidad inicial
+                    vels[pIdx * 3] = (Math.random() - 0.5) * 0.8 - (mekoThree.velocity.x * 0.25);
+                    vels[pIdx * 3 + 1] = -2.5 - Math.random() * 2.5 - (speed * 0.50);
+                    vels[pIdx * 3 + 2] = (Math.random() - 0.5) * 0.8 - 0.50;
+
+                    // 40% chispas, 60% humo térmico
+                    isSpark[pIdx] = Math.random() < 0.40 ? 1 : 0;
+                }
+            }
+
+            for (let i = 0; i < count; i++) {
+                if (lifes[i] > 0) {
+                    lifes[i] -= delta;
+                    const p = Math.max(0, Math.min(1.0, 1.0 - (lifes[i] / maxLifes[i])));
+
+                    // Física Térmica Ascendente (Buoyancy): vy += 0.80 * delta
+                    vels[i * 3 + 1] += 0.80 * delta;
+
+                    pos[i * 3] += vels[i * 3] * delta;
+                    pos[i * 3 + 1] += vels[i * 3 + 1] * delta;
+                    pos[i * 3 + 2] += vels[i * 3 + 2] * delta;
+
+                    if (isSpark[i] === 1) {
+                        // Rama Chispas: RGB(1.0, 0.7 * (1.0 - p), 0.1)
+                        cols[i * 3] = 1.0;
+                        cols[i * 3 + 1] = Math.max(0, 0.7 * (1.0 - p));
+                        cols[i * 3 + 2] = 0.1;
+                    } else {
+                        // Rama Humo Térmico: g(p) = 0.35 + (1.0 - p) * 0.30
+                        const g = 0.35 + (1.0 - p) * 0.30;
+                        cols[i * 3] = g;
+                        cols[i * 3 + 1] = g;
+                        cols[i * 3 + 2] = g;
+                    }
+
+                    if (lifes[i] <= 0) {
+                        pos[i * 3 + 1] = -100;
+                    }
+                }
+            }
+
+            mekoThree.particleGeo.attributes.position.needsUpdate = true;
+            mekoThree.particleGeo.attributes.color.needsUpdate = true;
+        }
+
+        function updateExplosionParticles() {
+            if (!mekoThree.explosionParticles) return;
+            const pos = mekoThree.explosionPositions;
+            const vel = mekoThree.explosionVelocities;
+            const lifes = mekoThree.explosionLifes;
+            const count = lifes.length;
+
+            for (let i = 0; i < count; i++) {
+                if (lifes[i] > 0) {
+                    lifes[i] -= 0.025;
+                    pos[i * 3] += vel[i * 3];
+                    pos[i * 3 + 1] += vel[i * 3 + 1];
+                    pos[i * 3 + 2] += vel[i * 3 + 2];
+                    vel[i * 3 + 1] -= 0.005; // gravedad
+
+                    if (lifes[i] <= 0) pos[i * 3 + 1] = -100;
+                }
+            }
+            mekoThree.explosionParticles.geometry.attributes.position.needsUpdate = true;
+        }
+
+        function updateFallingWords(elapsed) {
+            if (mekoThree.phase !== 'catching') return;
+            if (!mekoThree.robotGroup || !mekoThree.robotGroup.position) return;
+
+            const robotPos = mekoThree.robotGroup.position;
+
+            // Actualizar cápsulas de poder (Escudo y Malla EMP)
+            for (let j = mekoThree.fallingItems.length - 1; j >= 0; j--) {
+                const orb = mekoThree.fallingItems[j];
+                orb.position.y -= orb.userData.speed;
+                orb.rotation.y += 0.04;
+                orb.rotation.x += 0.02;
+
+                if (orb.userData.cageMesh) {
+                    orb.userData.cageMesh.rotation.y += 0.06;
+                    orb.userData.cageMesh.rotation.z += 0.03;
+                }
+                if (orb.userData.ringMesh) {
+                    orb.userData.ringMesh.rotation.z += 0.05;
+                }
+
+                if (orb.position.distanceTo(robotPos) < 1.05 && !mekoThree.isExploded) {
+                    const isEMP = orb.userData.type === 'emp';
+                    const orbPos = orb.position.clone();
+                    mekoThree.scene.remove(orb);
+                    mekoThree.fallingItems.splice(j, 1);
+
+                    if (isEMP) {
+                        // ⚡ ACTIVAR ONDA EXPANSIVA DE MALLA EMP
+                        playEMPBlastAudio();
+                        triggerHaptic('combo');
+                        showFloatingFeedback();
+
+                        // Posicionar y expandir la malla geodésica gigante
+                        if (mekoThree.empMesh) {
+                            mekoThree.empMesh.position.copy(robotPos);
+                            mekoThree.empScale = 0.3;
+                            mekoThree.empMesh.material.opacity = 0.95;
+                        }
+
+                        // Animación de sacudida y confeti de chispas
+                        document.body.classList.add('animate-shake');
+                        setTimeout(() => document.body.classList.remove('animate-shake'), 400);
+                        confetti({ particleCount: 45, spread: 100, origin: { y: 0.6 } });
+
+                        // Destruir todas las palabras incorrectas de la pantalla en chispas SIN perder vidas
+                        let targetFound = null;
+                        for (let k = mekoThree.fallingWords.length - 1; k >= 0; k--) {
+                            const wMesh = mekoThree.fallingWords[k];
+                            if (wMesh.userData.isCorrect) {
+                                targetFound = wMesh;
+                            } else {
+                                // Explotar palabra errónea en chispas
+                                mekoThree.scene.remove(wMesh);
+                                mekoThree.fallingWords.splice(k, 1);
+                            }
+                        }
+
+                        // Si la palabra objetivo estaba en pantalla, B-01 la absorbe con bonificación
+                        if (targetFound) {
+                            mekoState.streak++;
+                            const multiplier = Math.min(4, mekoState.streak);
+                            playHarmonicChime(multiplier);
+                            playWord(targetFound.userData.text);
+                            updateStars(8 * multiplier);
+
+                            mekoThree.scene.remove(targetFound);
+                            mekoThree.fallingWords = [];
+
+                            mekoState.remainingTargetWords.shift();
+                            mekoState.caughtCount++;
+                            updateChestLeds(mekoState.caughtCount);
+                            document.getElementById('meko-score').innerText = `${mekoState.caughtCount} / ${mekoState.totalItems}`;
+
+                            if (mekoState.caughtCount >= mekoState.totalItems) {
+                                showMekoramaExitButton();
+                                return;
+                            } else {
+                                setTimeout(announceAndSpawnTargetWord, 750);
+                                return;
+                            }
+                        } else {
+                            // Si solo había erróneas, limpia la pantalla y continúa
+                            mekoThree.fallingWords.forEach(w => mekoThree.scene.remove(w));
+                            mekoThree.fallingWords = [];
+                            setTimeout(spawnFallingWords, 600);
+                        }
+                    } else {
+                        // Poder de Escudo Cósmico tradicional
+                        mekoThree.hasShield = true;
+                        if (mekoThree.shieldBubbleMesh) mekoThree.shieldBubbleMesh.material.opacity = 0.55;
+                        const shieldBadge = document.getElementById('meko-shield-badge');
+                        if (shieldBadge) shieldBadge.classList.remove('hidden');
+                        playHarmonicChime(2);
+                        confetti({ particleCount: 20, spread: 45 });
+                    }
+                } else if (orb.position.y < -4.8) {
+                    mekoThree.scene.remove(orb);
+                    mekoThree.fallingItems.splice(j, 1);
+                }
+            }
+
+            for (let i = mekoThree.fallingWords.length - 1; i >= 0; i--) {
+                const mesh = mekoThree.fallingWords[i];
+                if (!mesh || !mesh.position) continue;
+
+                mesh.position.y -= mesh.userData.speed;
+                mesh.position.x += Math.sin(elapsed * 2.0 + mesh.userData.wobblePhase) * 0.006;
+                mesh.rotation.z = Math.sin(elapsed * 2.5 + mesh.userData.wobblePhase) * 0.05;
+
+                // Atracción Magnética Adictiva hacia la palabra correcta (Tractor Beam Pull)
+                const isTarget = (mesh.userData.text === mekoState.currentTargetWord);
+                const dist = mesh.position.distanceTo(robotPos);
+
+                if (isTarget && dist < 2.3 && !mekoThree.isExploded) {
+                    mesh.position.lerp(robotPos, 0.08);
+                    mesh.scale.set(1.15, 1.15, 1.15);
+                } else {
+                    mesh.scale.set(1.0, 1.0, 1.0);
+                }
+
+                // Detección precisa de colisión ajustada al nuevo tamaño 60% del robot
+                if (dist < 0.88 && !mekoThree.isExploded) {
+                    const collisionPos = mesh.position.clone();
+                    mekoThree.scene.remove(mesh);
+                    mekoThree.fallingWords.splice(i, 1);
+
+                    if (isTarget) {
+                        mekoState.streak++;
+                        const multiplier = Math.min(4, mekoState.streak);
+
+                        // Cámara Juice Punch sutil de impacto
+                        mekoThree.camera.position.z = 8.45;
+
+                        // Sonido con tono escalado por racha
+                        playHarmonicChime(multiplier);
+                        showFloatingFeedback();
+                        playWord(mesh.userData.text);
+
+                        const pointsEarned = 5 * multiplier;
+                        updateStars(pointsEarned);
+
+                        // Actualización del badge de combo en HUD
+                        const comboBadge = document.getElementById('meko-combo-badge');
+                        const comboText = document.getElementById('meko-combo-text');
+                        if (comboBadge && comboText) {
+                            if (mekoState.streak >= 2) {
+                                comboText.innerText = `COMBO x${mekoState.streak}`;
+                                comboBadge.classList.remove('hidden');
+                            }
+                        }
+
+                        confetti({ particleCount: 25 + multiplier * 10, spread: 65, origin: { y: 0.7 } });
+
+                        // Activar onda expansiva luminosa
+                        if (mekoThree.shockwaveMesh) {
+                            mekoThree.shockwaveMesh.position.copy(collisionPos);
+                            mekoThree.shockwaveScale = 0.1;
+                            mekoThree.shockwaveMesh.material.opacity = 0.9;
+                        }
+
+                        // Remover la palabra objetivo lograda y avanzar a la siguiente
+                        mekoState.remainingTargetWords.shift();
+                        mekoState.caughtCount++;
+                        updateChestLeds(mekoState.caughtCount);
+                        document.getElementById('meko-score').innerText = `${mekoState.caughtCount} / ${mekoState.totalItems}`;
+
+                        // Limpiar palabras activas para la siguiente ronda
+                        mekoThree.fallingWords.forEach(w => mekoThree.scene.remove(w));
+                        mekoThree.fallingWords = [];
+
+                        if (mekoState.caughtCount >= mekoState.totalItems) {
+                            showMekoramaExitButton();
+                            return;
+                        } else {
+                            setTimeout(announceAndSpawnTargetWord, 850);
+                            return;
+                        }
+                    } else {
+                        triggerRobotExplosion();
+                        return;
+                    }
+                }
+
+                // Si cae al vacío sin atrapar, volver a generar palabras
+                if (mesh.position.y < -4.8) {
+                    mekoThree.scene.remove(mesh);
+                    mekoThree.fallingWords.splice(i, 1);
+                    spawnFallingWords();
+                }
+            }
+        }
+
+        // Listener global de reescalado fluido para PC y Móviles
+        window.addEventListener('resize', resizeMekoramaRenderer);
+    </script>
+</body>
+</html>
